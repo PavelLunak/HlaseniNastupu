@@ -3,6 +3,7 @@ package cz.stodva.hlaseninastupu.utils;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import cz.stodva.hlaseninastupu.objects.AppSettings;
 import cz.stodva.hlaseninastupu.objects.Settings;
 
 public class PrefsUtils {
@@ -65,17 +66,17 @@ public class PrefsUtils {
         editor.commit();
     }
 
-    public static Settings getSettings(Context context) {
-        Settings settings = new Settings();
+    public static AppSettings getAppSettings(Context context) {
+        AppSettings appSettings = new AppSettings();
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
-        settings.setSap(sp.getString("settings_sap", ""));
-        settings.setPhoneNumber(sp.getString("settings_phone", AppConstants.PHONE_NUMBER));
-        settings.setStartMessage(sp.getString("settings_start_text", ""));
-        settings.setEndMessage(sp.getString("settings_end_text", ""));
+        appSettings.setSap(sp.getString("settings_sap", ""));
+        appSettings.setPhoneNumber(sp.getString("settings_phone", AppConstants.PHONE_NUMBER));
+        appSettings.setStartMessage(sp.getString("settings_start_text", ""));
+        appSettings.setEndMessage(sp.getString("settings_end_text", ""));
 
-        return settings;
+        return appSettings;
     }
 
     public static void saveMsgStartSent(Context context, boolean sent) {
@@ -124,5 +125,17 @@ public class PrefsUtils {
     public static boolean isMsgEndDeliveredt(Context context) {
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         return sp.getBoolean("msg_end_delivered", false);
+    }
+
+    public static void setDefinitiveRejection(Context context, boolean isDenied) {
+        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putBoolean("definitive_rejection", isDenied);
+        editor.commit();
+    }
+
+    public static boolean isDefinitiveRejection(Context context) {
+        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
+        return sp.getBoolean("definitive_rejection", false);
     }
 }

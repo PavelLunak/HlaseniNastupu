@@ -3,7 +3,6 @@ package cz.stodva.hlaseninastupu;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -19,7 +18,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -28,10 +30,11 @@ import com.facebook.stetho.Stetho;
 
 import java.util.Calendar;
 
+import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
-import cz.stodva.hlaseninastupu.objects.Settings;
+import cz.stodva.hlaseninastupu.objects.AppSettings;
 import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
@@ -59,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements
     int minutesEnd = -1;
 
     MediaPlayer mediaPlayer;
-    Settings settings;
+    AppSettings appSettings;
 
     private BroadcastReceiver smsSentBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -115,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements
 
         if (savedInstanceState == null) {
             showFragment(FRAGMENT_MAIN_NAME);
-            //checkSettings();
+            checkSettings();
         }
 
         Intent incommingIntent = getIntent();
@@ -141,6 +144,19 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
                     mediaPlayer = MediaPlayer.create(this, R.raw.ha);
                     mediaPlayer.start();
+
+                    DialogInfo.createDialog(this)
+                            .setTitle("Chyba")
+                            .setMessage("Chyba při pokusu odeslat hlášení! Chyba: neznámý typ hlášení.")
+                            .setListener(new DialogInfo.OnDialogClosedListener() {
+                                @Override
+                                public void onDialogClosed() {
+                                    if (mediaPlayer != null) {
+                                        mediaPlayer.stop();
+                                        //cancelTimer();
+                                    }
+                                }
+                            });
 
                     AlertDialog.Builder dlgAlert = new AlertDialog.Builder(MainActivity.this);
                     dlgAlert.setTitle("CHYBA");
@@ -349,15 +365,15 @@ public class MainActivity extends AppCompatActivity implements
 
     private void checkSettings() {
         boolean result = true;
-        loadSettings();
+        getAppSettings();
 
-        if (settings.getStartMessage().equals("")) result = false;
-        if (settings.getEndMessage().equals("")) result = false;
+        if (appSettings.getStartMessage().equals("")) result = false;
+        if (appSettings.getEndMessage().equals("")) result = false;
 
         if (!result) {
             AlertDialog.Builder dlgAlert = new AlertDialog.Builder(MainActivity.this);
             dlgAlert.setTitle("Upozornění");
-            dlgAlert.setMessage("Aplikace není správně nastaven! Otevřít nastavení?");
+            dlgAlert.setMessage("Aplikace není správně nastavena! Otevřít nastavení?");
 
             dlgAlert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int whichButton) {
@@ -375,43 +391,135 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public String getPhoneNumber() {
-        loadSettings();
+        getAppSettings();
 
-        if (settings.getPhoneNumber().equals("")) return PHONE_NUMBER;
-        else return settings.getPhoneNumber();
+        if (appSettings.getPhoneNumber().equals("")) return PHONE_NUMBER;
+        else return appSettings.getPhoneNumber();
     }
 
     public String getMessage(int messageType) {
-        loadSettings();
+        getAppSettings();
 
         if (messageType == MESSAGE_TYPE_START) {
-            if (settings.getStartMessage() == null) return null;
-            if (settings.getStartMessage().equals("")) return null;
-            return settings.getStartMessage();
+            if (appSettings.getStartMessage() == null) return null;
+            if (appSettings.getStartMessage().equals("")) return null;
+            return appSettings.getStartMessage();
         } else if (messageType == MESSAGE_TYPE_END) {
-            if (settings.getEndMessage() == null) return null;
-            if (settings.getEndMessage().equals("")) return null;
-            return settings.getEndMessage();
+            if (appSettings.getEndMessage() == null) return null;
+            if (appSettings.getEndMessage().equals("")) return null;
+            return appSettings.getEndMessage();
         }
 
         return null;
     }
 
-    public boolean checkSmsPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-                return true;
-            } else {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.SEND_SMS},
-                        SMS_PERMISSION_REQUEST);
+    public void checkSmsPermissionGranted() {
 
-                return false;
-            }
-        } else {
-            return true;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+
+        // Bylo již udělení oprávnění definitivně odepřeno?
+        if (PrefsUtils.isDefinitiveRejection(this)) {
+            showDialogSettings();
+            return;
         }
 
+        if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+            // Udělení oprávnění uděleno již dříve
+            Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
+            // Udělení oprávnění již bylo odmítnuto (nezaškrtnuto políčko "Příště se neptat")
+            showDialogExplanation();
+        } else {
+            // Zobrazení informačního doalogu před zobrazením systémové žádosti
+            showDialogInfo(Manifest.permission.SEND_SMS, "Pro odesílání SMS bude nutné této aplikaci udělit oprávnění. Pokračovat k udělení oprávnění?");
+        }
+    }
+
+    public void showDialogSettings() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setTitle(R.string.additional_permission);
+
+        alertDialogBuilder
+                .setMessage(R.string.permissions_settings_info)
+                .setCancelable(false)
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Intent intent = new Intent();
+                        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        Uri uri = Uri.fromParts("package", getPackageName(), null);
+                        intent.setData(uri);
+                        startActivity(intent);
+                    }
+                })
+                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        return;
+                    }
+                });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+    }
+
+    // Zobrazení dialogového okna s vysvětlením důvodu potřeby udělení oprávnění před zobrazením
+    // systémového dialogového okna s žádostí a s možností zaškrtnutí políčka "Příště se neptat".
+    public void showDialogExplanation() {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setTitle("SMS");
+
+        alertDialogBuilder
+                .setMessage(R.string.permission_explanation)
+                .setCancelable(false)
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        ActivityCompat.requestPermissions(
+                                MainActivity.this,
+                                new String[]{Manifest.permission.SEND_SMS},
+                                SMS_PERMISSION_REQUEST);
+                    }
+                })
+                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        return;
+                    }
+                });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+    }
+
+    public void showDialogInfo(final String permission, String message) {
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setTitle(R.string.request_permission);
+
+        alertDialogBuilder
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        if (permission.equals(Manifest.permission.SEND_SMS)) {
+
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.SEND_SMS},
+                                    SMS_PERMISSION_REQUEST);
+                        } else {
+                            // ... jiné postupy dle typu oprávnění
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        return;
+                    }
+                });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
     }
 
     @Override
@@ -420,22 +528,20 @@ public class MainActivity extends AppCompatActivity implements
             case SMS_PERMISSION_REQUEST: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
+                } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+                    //Vždy když uživatel odmítne udělit oprávnění a NEZAŠKRTNE políčko "Příště se neptat"
                 } else {
-
-                    return;
+                    //Uživatel OPAKOVANĚ odmítl udělit oprávnění a zaškrtl políčko "Příště se neptat"
+                    PrefsUtils.setDefinitiveRejection(MainActivity.this, true);
                 }
             }
         }
 
     }
 
-    public Settings loadSettings() {
-        settings = PrefsUtils.getSettings(this);
-        return settings;
-    }
-
-    public Settings getSettings() {
-        return settings;
+    public AppSettings getAppSettings() {
+        appSettings = PrefsUtils.getAppSettings(this);
+        return appSettings;
     }
 
     private void initStetho() {

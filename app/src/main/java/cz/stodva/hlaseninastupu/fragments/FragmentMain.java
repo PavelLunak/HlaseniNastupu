@@ -108,49 +108,6 @@ public class FragmentMain extends Fragment implements AppConstants {
             public void onClick(View v) {
                 Animators.animateButtonClick(btnStartShift, true);
                 requestSendReport(MESSAGE_TYPE_START);
-
-                /*
-                if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START)) {
-                    Toast.makeText(activity, "Nelze odesílat hlášení nástupu při nastaveném budíku na automatické hlášení nástupu", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                final String phone = activity.getPhoneNumber();
-                final String text = activity.getMessage(AppConstants.MESSAGE_TYPE_START);
-
-                if (text == null) {
-                    Toast.makeText(activity, "Není nastaven text hlášení nástupu!", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                if (!activity.checkSmsPermission()) return;
-
-                AlertDialog.Builder dlgAlert = new AlertDialog.Builder(activity);
-                dlgAlert.setTitle("NÁSTUP");
-                dlgAlert.setMessage("Odeslat na tel. číslo " + activity.getPhoneNumber() + " hlášení nástupu na směnu?");
-
-                dlgAlert.setPositiveButton("Ano", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        PrefsUtils.saveMsgStartSent(activity, false);
-                        PrefsUtils.saveMsgStartDelivered(activity, false);
-                        PrefsUtils.setLastReportTime(activity, (new Date()).getTime(), MESSAGE_TYPE_START);
-                        updateLastReportInfo();
-
-                        Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
-                        sentIntent.putExtra("message_type", MESSAGE_TYPE_START);
-                        PendingIntent pi1 = PendingIntent.getBroadcast(activity, SENT_REQUEST_START, sentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                        Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
-                        deliveredIntent.putExtra("message_type", MESSAGE_TYPE_START);
-                        PendingIntent pi2 = PendingIntent.getBroadcast(activity, DELIVERED_REQUEST_START, deliveredIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                        SmsManager sm = SmsManager.getDefault();
-                        sm.sendTextMessage(phone, null, text, pi1, pi2);
-                    }
-                }).setNegativeButton("Ne", null);
-
-                dlgAlert.show();
-                */
             }
         });
 
@@ -159,49 +116,6 @@ public class FragmentMain extends Fragment implements AppConstants {
             public void onClick(View v) {
                 Animators.animateButtonClick(btnEndShift, true);
                 requestSendReport(MESSAGE_TYPE_END);
-
-                /*
-                if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END)) {
-                    Toast.makeText(activity, "Nelze odesílat hlášení konce při nastaveném budíku na automatické hlášení konce", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                final String phone = activity.getPhoneNumber();
-                final String text = activity.getMessage(AppConstants.MESSAGE_TYPE_END);
-
-                if (text == null) {
-                    Toast.makeText(activity, "Není nastaven text hlášení konce!", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                if (!activity.checkSmsPermission()) return;
-
-                AlertDialog.Builder dlgAlert = new AlertDialog.Builder(activity);
-                dlgAlert.setTitle("KONEC");
-                dlgAlert.setMessage("Odeslat na tel. číslo " + activity.getPhoneNumber() + " hlášení konce směny?");
-
-                dlgAlert.setPositiveButton("Ano", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        PrefsUtils.saveMsgEndSent(activity, false);
-                        PrefsUtils.saveMsgEndDelivered(activity, false);
-                        PrefsUtils.setLastReportTime(activity, (new Date()).getTime(), MESSAGE_TYPE_END);
-                        updateLastReportInfo();
-
-                        Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
-                        sentIntent.putExtra("message_type", MESSAGE_TYPE_END);
-                        PendingIntent pi1 = PendingIntent.getBroadcast(activity, SENT_REQUEST_END, sentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                        Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
-                        deliveredIntent.putExtra("message_type", MESSAGE_TYPE_END);
-                        PendingIntent pi2 = PendingIntent.getBroadcast(activity, DELIVERED_REQUEST_END, deliveredIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                        SmsManager sm = SmsManager.getDefault();
-                        sm.sendTextMessage(phone, null, phone, pi1, pi2);
-                    }
-                }).setNegativeButton("Ne", null);
-
-                dlgAlert.show();
-                */
             }
         });
 
@@ -247,11 +161,10 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         AlertDialog.Builder dlgAlert = new AlertDialog.Builder(activity);
         dlgAlert.setTitle(message_type == MESSAGE_TYPE_START ? "Nástup" : "Konec");
-        dlgAlert.setMessage(
-                "Odeslat na tel. číslo " +
-                        activity.getPhoneNumber() +
-                        " hlášení " +
-                        message_type == MESSAGE_STRAT ? " nástupu na směnu?" : "konce směny?");
+        dlgAlert.setMessage("Odeslat na tel. číslo " +
+                activity.getPhoneNumber() +
+                " hlášení " +
+                (message_type == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"));
 
         dlgAlert.setPositiveButton("Ano", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {

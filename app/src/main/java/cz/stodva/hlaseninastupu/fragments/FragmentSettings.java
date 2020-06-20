@@ -63,11 +63,11 @@ public class FragmentSettings extends Fragment implements AppConstants {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        activity.loadSettings();
-        etSap.setText(activity.getSettings().getSap());
-        etPhone.setText(activity.getSettings().getPhoneNumber());
-        etMessageStart.setText(activity.getSettings().getStartMessage());
-        etMessageEnd.setText(activity.getSettings().getEndMessage());
+        activity.getAppSettings();
+        etSap.setText(activity.getAppSettings().getSap());
+        etPhone.setText(activity.getAppSettings().getPhoneNumber());
+        etMessageStart.setText(activity.getAppSettings().getStartMessage());
+        etMessageEnd.setText(activity.getAppSettings().getEndMessage());
 
         etSap.addTextChangedListener(textWatcher);
         etPhone.addTextChangedListener(textWatcher);
@@ -87,6 +87,9 @@ public class FragmentSettings extends Fragment implements AppConstants {
         if (!sap.equals("")) {
             etMessageStart.setHint(MESSAGE_STRAT + " " + sap);
             etMessageEnd.setHint(MESSAGE_END + " " + sap);
+        } else {
+            if (etMessageStart.getHint().toString().contains("NASTUP")) etMessageStart.setHint("Musí být vyplněno");
+            if (etMessageEnd.getHint().toString().contains("KONEC")) etMessageEnd.setHint("Musí být vyplněno");
         }
 
         if ((msgStart.equals("") || msgEnd.equals("")) && sap.equals("")) labelWarning.setVisibility(View.VISIBLE);

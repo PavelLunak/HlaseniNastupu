@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Hlášení</string>
+
+    <string name="additional_permission">Dodatečné udělení oprávnění</string>
+    <string name="permissions_settings_info">Žádost o udělení oprávnění byla opakovaně zamítnuta a bylo zaškrtnuto políčko \"Příště se neptat\". Oprávnění lze nyní udělit pouze ručně v nastavení aplikace, v sekci \"Oprávnění\". Otevřít toto nastavení?</string>
+    <string name="yes">Ano</string>
+    <string name="no">Ne</string>
+    <string name="permission_already_granted">Oprávnění je již uděleno!</string>
+    <string name="permission_explanation">Předchozí žádost o udělení oprávnění byla zamítnuta, proto právě zobrazuji podrobnější vysvětlení, proč aplikace toto oprávnění požaduje... Zobrazit žádost systému o udělení oprávnění?</string>
+    <string name="request_permission">Vyžádání oprávnění</string>
 </resources>
