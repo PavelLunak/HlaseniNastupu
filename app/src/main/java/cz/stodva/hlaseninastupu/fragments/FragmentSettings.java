@@ -124,7 +124,7 @@ public class FragmentSettings extends Fragment implements AppConstants {
         if (!sap.equals("") && startMsg.equals("")) startMsg = MESSAGE_STRAT + " " + sap;
         if (!sap.equals("") && endMsg.equals("")) endMsg = MESSAGE_END + " " + sap;
 
-        PrefsUtils.saveSettings(
+        PrefsUtils.saveAppSettings(
                 activity,
                 sap,
                 phone,

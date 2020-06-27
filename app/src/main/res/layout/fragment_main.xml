@@ -52,7 +52,7 @@
         android:background="@drawable/bg_set_time"
         android:gravity="center_horizontal"
         android:padding="10dp"
-        android:text="NASTAVIT ČAS HLÁŠENÍ"
+        android:text="AUTOMAT"
         android:textColor="@android:color/white"
         android:textSize="24sp"
         android:textStyle="bold"
@@ -159,9 +159,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Button"
+        android:text="Prefs"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.421"
         app:layout_constraintStart_toEndOf="@+id/btnSettings"
         app:layout_constraintTop_toBottomOf="@+id/btnSetTimeForReport" />
 

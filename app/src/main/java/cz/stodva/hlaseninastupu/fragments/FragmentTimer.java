@@ -6,7 +6,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.RadioGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,16 +23,21 @@ import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.pickers.DatePicker;
 import cz.stodva.hlaseninastupu.pickers.TimePicker;
+import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
-public class FragmentTimer extends Fragment implements AppConstants {
+public class FragmentTimer extends Fragment implements AppConstants, CompoundButton.OnCheckedChangeListener {
 
     MainActivity activity;
 
-    TextView labelDateStart, labelDateEnd, labelTimeStart, labelTimeEnd, labelNextTimerStart, labelNextTimerEnd;
-    Button btnOkStart, btnOkEnd, btnCancelTimerStart, btnCancelTimerEnd;
-    RadioGroup rgStartEnd;
+    TextView labelDateStart, labelDateEnd, labelTimeStart, labelTimeEnd;
+    TextView btnOkStart, btnOkEnd;
+    TextView titleStartTime, titleEndTime, labelNextTimerStart, labelNextTimerEnd;
+    Button btnCancelTimerStart, btnCancelTimerEnd;
+    LinearLayout layoutStart, layoutEnd;
+    CheckBox chbNoSentStart;//, chbNoDeliveredStart;
+    CheckBox chbNoSentEnd;//, chbNoDeliveredEnd;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -49,11 +56,24 @@ public class FragmentTimer extends Fragment implements AppConstants {
         labelTimeEnd = view.findViewById(R.id.labelTimeEnd);
         labelNextTimerStart = view.findViewById(R.id.labelNextTimerStart);
         labelNextTimerEnd = view.findViewById(R.id.labelNextTimerEnd);
+        titleStartTime = view.findViewById(R.id.titleStartTime);
+        titleEndTime = view.findViewById(R.id.titleEndTime);
 
         btnOkStart = view.findViewById(R.id.btnOkStart);
         btnOkEnd = view.findViewById(R.id.btnOkEnd);
         btnCancelTimerStart = view.findViewById(R.id.btnCancelTimerStart);
         btnCancelTimerEnd = view.findViewById(R.id.btnCancelTimerEnd);
+        layoutStart = view.findViewById(R.id.layoutStart);
+        layoutEnd = view.findViewById(R.id.layoutEnd);
+        chbNoSentStart = view.findViewById(R.id.chbNoSentStart);
+        //chbNoDeliveredStart = view.findViewById(R.id.chbNoDeliveredStart);
+        chbNoSentEnd = view.findViewById(R.id.chbNoSentEnd);
+        //chbNoDeliveredEnd = view.findViewById(R.id.chbNoDeliveredEnd);
+
+        chbNoSentStart.setOnCheckedChangeListener(this);
+        //chbNoDeliveredStart.setOnCheckedChangeListener(this);
+        chbNoSentEnd.setOnCheckedChangeListener(this);
+        //chbNoDeliveredEnd.setOnCheckedChangeListener(this);
 
         return view;
     }
@@ -71,11 +91,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
         labelDateStart.setText(sdf.format(calendar.getTimeInMillis()));
         labelDateEnd.setText(sdf.format(calendar.getTimeInMillis()));
 
-        updateBtnCancelTimer(MESSAGE_TYPE_START);
-        updateBtnCancelTimer(MESSAGE_TYPE_END);
-
-        updateNextTimerInfo(MESSAGE_TYPE_START);
-        updateNextTimerInfo(MESSAGE_TYPE_END);
+        updateLayoutsVisibility();
 
         labelDateStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -117,6 +133,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
                     public void onTimeSelected(int hours, int minutes) {
                         activity.setTimeData(hours, minutes, MESSAGE_TYPE_START);
                         labelTimeStart.setText("" + hours + ":" + addZero(minutes));
+                        Animators.animateButton(btnOkStart);
                     }
                 });
 
@@ -133,6 +150,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
                     public void onTimeSelected(int hours, int minutes) {
                         activity.setTimeData(hours, minutes, MESSAGE_TYPE_END);
                         labelTimeEnd.setText("" + hours + ":" + addZero(minutes));
+                        Animators.animateButton(btnOkEnd);
                     }
                 });
 
@@ -144,6 +162,8 @@ public class FragmentTimer extends Fragment implements AppConstants {
         btnOkStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Animators.animateButtonClick(btnOkStart, true);
+
                 if (activity.checkTimeInput(MESSAGE_TYPE_START))
                     activity.setTimer(MESSAGE_TYPE_START);
             }
@@ -152,6 +172,8 @@ public class FragmentTimer extends Fragment implements AppConstants {
         btnOkEnd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Animators.animateButtonClick(btnOkEnd, true);
+
                 if (activity.checkTimeInput(MESSAGE_TYPE_END)) activity.setTimer(MESSAGE_TYPE_END);
             }
         });
@@ -171,57 +193,87 @@ public class FragmentTimer extends Fragment implements AppConstants {
         });
     }
 
-    public void updateBtnCancelTimer(int messageType) {
-        if (messageType == MESSAGE_TYPE_START) {
-            if (PrefsUtils.isTimerSet(activity, messageType))
-                btnCancelTimerStart.setVisibility(View.VISIBLE);
-            else btnCancelTimerStart.setVisibility(View.GONE);
-        } else {
-            if (PrefsUtils.isTimerSet(activity, messageType))
-                btnCancelTimerEnd.setVisibility(View.VISIBLE);
-            else btnCancelTimerEnd.setVisibility(View.GONE);
-        }
-    }
-
-    public void updateNextTimerInfo(int messageType) {
+    public void updateLayoutsVisibility() {
         SimpleDateFormat sdf = new SimpleDateFormat("d.MM. yyyy  k:mm");
+        long nextTimerStart = PrefsUtils.getLastTimer(activity, MESSAGE_TYPE_START);
+        long nextTimerEnd = PrefsUtils.getLastTimer(activity, MESSAGE_TYPE_END);
 
-        long nextTimer = PrefsUtils.getLastTimer(activity, messageType);
+        labelNextTimerStart.setText(sdf.format(nextTimerStart));
+        labelNextTimerEnd.setText(sdf.format(nextTimerEnd));
 
-        if (messageType == MESSAGE_TYPE_START) {
-            if (!PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START)) {
-                labelNextTimerStart.setText("");
-                labelNextTimerStart.setVisibility(View.GONE);
-                return;
-            }
-
-            if (nextTimer > -1) {
-                labelNextTimerStart.setVisibility(View.VISIBLE);
-                labelNextTimerStart.setText("Následující automatické hlášení nástupu: " + sdf.format(nextTimer));
-            } else {
-                labelNextTimerStart.setText("");
-                labelNextTimerStart.setVisibility(View.GONE);
-            }
-        } else if (messageType == MESSAGE_TYPE_END){
-            if (!PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END)) {
-                labelNextTimerEnd.setText("");
-                labelNextTimerEnd.setVisibility(View.GONE);
-                return;
-            }
-
-            if (nextTimer > -1) {
-                labelNextTimerEnd.setVisibility(View.VISIBLE);
-                labelNextTimerEnd.setText("Následující automatické hlášení konce: " + sdf.format(nextTimer));
-            }
-            else {
-                labelNextTimerEnd.setText("");
-                labelNextTimerEnd.setVisibility(View.GONE);
-            }
-        }
+        showStartLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START));
+        showEndLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END));
     }
 
     public String addZero(int minutes) {
         if (minutes < 10) return "0" + minutes;
         else return "" + minutes;
+    }
+
+    private void showStartLayout(boolean show) {
+        if (show) {
+            layoutStart. setVisibility(View.VISIBLE);
+            Animators.animateButton(chbNoSentStart);
+            //Animators.animateButton(chbNoDeliveredStart);
+        } else {
+            layoutStart. setVisibility(View.GONE);
+        }
+    }
+
+    private void showEndLayout(boolean show) {
+        if (show) {
+            layoutEnd. setVisibility(View.VISIBLE);
+            Animators.animateButton(chbNoSentEnd);
+            //Animators.animateButton(chbNoDeliveredEnd);
+        } else {
+            layoutEnd. setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        switch (buttonView.getId()) {
+            case R.id.chbNoSentStart:
+                PrefsUtils.setNoSentAlarm(activity, isChecked, MESSAGE_TYPE_START);
+                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_START);
+
+                if (isChecked) {
+                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_SENT);
+                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_DELIVERED);
+                } else {
+                    activity.cancelTimerForError(MESSAGE_TYPE_START);
+                }
+
+                break;
+            /*
+            case R.id.chbNoDeliveredStart:
+                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_START);
+
+                if (isChecked) activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_DELIVERED);
+                else activity.cancelTimerForError(MESSAGE_TYPE_START);
+                break;
+            */
+            case R.id.chbNoSentEnd:
+                PrefsUtils.setNoSentAlarm(activity, isChecked, MESSAGE_TYPE_END);
+                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_END);
+
+                if (isChecked) {
+                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_SENT);
+                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_DELIVERED);
+                }
+                else {
+                    activity.cancelTimerForError(MESSAGE_TYPE_END);
+                }
+
+                break;
+            /*
+            case R.id.chbNoDeliveredEnd:
+                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_END);
+
+                if (isChecked) activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_DELIVERED);
+                else activity.cancelTimerForError(MESSAGE_TYPE_END);
+                break;
+            */
+        }
     }
 }

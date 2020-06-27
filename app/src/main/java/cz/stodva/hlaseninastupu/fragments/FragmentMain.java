@@ -1,10 +1,7 @@
 package cz.stodva.hlaseninastupu.fragments;
 
-import android.Manifest;
-import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.SmsManager;
@@ -28,6 +25,9 @@ import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
+import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.receivers.MessageDeliveredReceiver;
 import cz.stodva.hlaseninastupu.receivers.MessageSentReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
@@ -93,13 +93,13 @@ public class FragmentMain extends Fragment implements AppConstants {
             @Override
             public void onClick(View v) {
                 Toast.makeText(activity,
-                        "Sent start: " + PrefsUtils.isMsgStartSent(activity) +
+                        "Sent start: " + PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START) +
                                 "\n" +
-                                "Delivered start: " + PrefsUtils.isMsgStartDelivered(activity) +
+                                "Delivered start: " + PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START) +
                                 "\n" +
-                                "Sent end: " + PrefsUtils.isMsgEndSent(activity) +
+                                "Sent end: " + PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END) +
                                 "\n" +
-                                "Delivered end: " + PrefsUtils.isMsgEndDeliveredt(activity), Toast.LENGTH_LONG).show();
+                                "Delivered end: " + PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END), Toast.LENGTH_LONG).show();
             }
         });
 
@@ -123,7 +123,7 @@ public class FragmentMain extends Fragment implements AppConstants {
             @Override
             public void onClick(View v) {
                 Animators.animateButtonClick(btnSetTimeForReport, true);
-                if (!activity.checkSmsPermission()) return;
+                if (!activity.checkSmsPermissionGranted()) return;
                 activity.showFragment(FRAGMENT_TIMER_NAME);
             }
         });
@@ -157,50 +157,45 @@ public class FragmentMain extends Fragment implements AppConstants {
             return;
         }
 
-        if (!activity.checkSmsPermission()) return;
+        if (!activity.checkSmsPermissionGranted()) return;
 
-        AlertDialog.Builder dlgAlert = new AlertDialog.Builder(activity);
-        dlgAlert.setTitle(message_type == MESSAGE_TYPE_START ? "Nástup" : "Konec");
-        dlgAlert.setMessage("Odeslat na tel. číslo " +
-                activity.getPhoneNumber() +
-                " hlášení " +
-                (message_type == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"));
+        DialogYesNo.createDialog(activity)
+                .setTitle(message_type == MESSAGE_TYPE_START ? "Nástup" : "Konec")
+                .setMessage("Odeslat na tel. číslo " +
+                        activity.getPhoneNumber() +
+                        " hlášení " +
+                        (message_type == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"))
+                .setListener(new YesNoSelectedListener() {
+                    @Override
+                    public void yesSelected() {
+                        PrefsUtils.saveIsReportSent(activity, false, message_type);
+                        PrefsUtils.saveIsReportDelivered(activity, false, message_type);
 
-        dlgAlert.setPositiveButton("Ano", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                if (message_type == MESSAGE_TYPE_START) {
-                    PrefsUtils.saveMsgStartSent(activity, false);
-                    PrefsUtils.saveMsgStartDelivered(activity, false);
-                } else if (message_type == MESSAGE_TYPE_END) {
-                    PrefsUtils.saveMsgEndSent(activity, false);
-                    PrefsUtils.saveMsgEndDelivered(activity, false);
-                }
+                        PrefsUtils.setLastReportTime(activity, (new Date()).getTime(), message_type);
+                        updateLastReportInfo();
 
-                PrefsUtils.setLastReportTime(activity, (new Date()).getTime(), message_type);
-                updateLastReportInfo();
+                        Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
+                        sentIntent.putExtra("message_type", message_type);
+                        PendingIntent pi1 = PendingIntent.getBroadcast(
+                                activity,
+                                message_type == MESSAGE_TYPE_START ? SENT_REQUEST_START : SENT_REQUEST_END,
+                                sentIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT);
 
-                Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
-                sentIntent.putExtra("message_type", message_type);
-                PendingIntent pi1 = PendingIntent.getBroadcast(
-                        activity,
-                        message_type == MESSAGE_TYPE_START ? SENT_REQUEST_START : SENT_REQUEST_END,
-                        sentIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
+                        Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
+                        deliveredIntent.putExtra("message_type", message_type);
+                        PendingIntent pi2 = PendingIntent.getBroadcast(
+                                activity,
+                                message_type == MESSAGE_TYPE_START ? DELIVERED_REQUEST_START : DELIVERED_REQUEST_END,
+                                deliveredIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT);
 
-                Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
-                deliveredIntent.putExtra("message_type", message_type);
-                PendingIntent pi2 = PendingIntent.getBroadcast(
-                        activity,
-                        message_type == MESSAGE_TYPE_START ? DELIVERED_REQUEST_START : DELIVERED_REQUEST_END,
-                        deliveredIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
+                        SmsManager sm = SmsManager.getDefault();
+                        sm.sendTextMessage(phone, null, text, pi1, pi2);
+                    }
 
-                SmsManager sm = SmsManager.getDefault();
-                sm.sendTextMessage(phone, null, text, pi1, pi2);
-            }
-        }).setNegativeButton("Ne", null);
-
-        dlgAlert.show();
+                    @Override public void noSelected() {}
+                }).show();
     }
 
     public void updateLastReportInfo() {
@@ -223,16 +218,16 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         AppCompatResources.getDrawable(activity, R.drawable.ic_check_green);
 
-        if (PrefsUtils.isMsgStartSent(activity)) imgSentStart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+        if (PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START)) imgSentStart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
         else imgSentStart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
-        if (PrefsUtils.isMsgStartDelivered(activity)) imgDeliveredSart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+        if (PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START)) imgDeliveredSart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
         else imgDeliveredSart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
-        if (PrefsUtils.isMsgEndSent(activity)) imgSentEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+        if (PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END)) imgSentEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
         else imgSentEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
-        if (PrefsUtils.isMsgEndDeliveredt(activity)) imgDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+        if (PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END)) imgDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
         else imgDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
     }
 

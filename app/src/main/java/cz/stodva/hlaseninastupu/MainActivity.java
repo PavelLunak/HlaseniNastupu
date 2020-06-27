@@ -9,11 +9,9 @@ import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
 import android.app.AlarmManager;
-import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -22,7 +20,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.telephony.SmsManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -31,9 +28,11 @@ import com.facebook.stetho.Stetho;
 import java.util.Calendar;
 
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
 import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
+import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.AppSettings;
 import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
@@ -67,10 +66,10 @@ public class MainActivity extends AppCompatActivity implements
     private BroadcastReceiver smsSentBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
+            Log.d(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
 
             if (intent.getAction().equals(ACTION_SMS_SENT)){
-                Log.i(LOG_TAG, "ACTION_SMS_SENT");
+                Log.d(LOG_TAG, "ACTION_SMS_SENT");
                 Log.d(AppConstants.LOG_TAG, "intent hasExtra: " + intent.getIntExtra("message_type", -1));
 
                 FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
@@ -82,10 +81,10 @@ public class MainActivity extends AppCompatActivity implements
     private BroadcastReceiver smsDeliveredBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
+            Log.d(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
 
             if (intent.getAction().equals(ACTION_SMS_DELIVERED)) {
-                Log.i(LOG_TAG, "ACTION_SMS_DELIVERED");
+                Log.d(LOG_TAG, "ACTION_SMS_DELIVERED");
                 Log.d(AppConstants.LOG_TAG, "intent hasExtra: " + intent.getIntExtra("message_type", -1));
 
                 FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
@@ -98,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements
                     } else if (msgType == MESSAGE_TYPE_END) {
                         fm.getImgResult(R.id.imgDeliveredEnd).setImageDrawable(AppCompatResources.getDrawable(MainActivity.this, R.drawable.ic_check_green));
                     } else {
-                        Log.i(LOG_TAG, "bad message type");
+                        Log.d(LOG_TAG, "bad message type");
                     }
                 }
             }
@@ -124,60 +123,34 @@ public class MainActivity extends AppCompatActivity implements
         Intent incommingIntent = getIntent();
 
         if (incommingIntent != null) {
-            if (incommingIntent.hasExtra("on_timer")) {
+            // Alarm neodeslaného (nedoručeného) hlášení
+            if (incommingIntent.hasExtra("on_error")) {
+                Log.d(LOG_TAG_SMS, "MainActivity - ON_ERROR");
 
-                int messageType = incommingIntent.getIntExtra("messageType", -1);
+                String errMsg = incommingIntent.getStringExtra("error_message");
+                int msgType = incommingIntent.getIntExtra("messageType", -1);
 
-                if (messageType > -1) {
-                    PrefsUtils.setIsTimer(this, messageType, false);
+                Log.d(LOG_TAG_SMS, "message type : " + messageTypeToString(msgType));
+                Log.d(LOG_TAG_SMS, "error message : " + errMsg);
 
-                    String text = getMessage(messageType);
-                    if (text == null) return;
-
-                    SmsManager sm = SmsManager.getDefault();
-                    sm.sendTextMessage(
-                            getPhoneNumber(),
-                            null,
-                            text,
-                            null,
-                            null);
-                } else {
+                if (errMsg != null) {
                     mediaPlayer = MediaPlayer.create(this, R.raw.ha);
                     mediaPlayer.start();
 
                     DialogInfo.createDialog(this)
-                            .setTitle("Chyba")
-                            .setMessage("Chyba při pokusu odeslat hlášení! Chyba: neznámý typ hlášení.")
+                            .setTitle("POZOR")
+                            .setMessage(errMsg)
                             .setListener(new DialogInfo.OnDialogClosedListener() {
                                 @Override
                                 public void onDialogClosed() {
                                     if (mediaPlayer != null) {
                                         mediaPlayer.stop();
-                                        //cancelTimer();
+                                        mediaPlayer.release();
+                                        mediaPlayer = null;
                                     }
                                 }
-                            });
-
-                    AlertDialog.Builder dlgAlert = new AlertDialog.Builder(MainActivity.this);
-                    dlgAlert.setTitle("CHYBA");
-                    dlgAlert.setMessage("Chyba při pokusu odeslat hlášení! Chyba: neznámý typ hlášení.");
-
-                    dlgAlert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            if (mediaPlayer != null) {
-                                mediaPlayer.stop();
-                                dialog.cancel();
-                                //cancelTimer();
-                            }
-                        }
-                    });
-
-                    dlgAlert.show();
+                            }).show();
                 }
-            } else if (incommingIntent.hasExtra("key_message_sent")) {
-                Log.d(AppConstants.LOG_TAG, "incommingIntent - hasExtra(key_message_sent)");
-            } else if (incommingIntent.hasExtra("key_message_delivered")) {
-                Log.d(AppConstants.LOG_TAG, "incommingIntent - hasExtra(key_message_delivered)");
             }
         }
 
@@ -306,15 +279,13 @@ public class MainActivity extends AppCompatActivity implements
         return calendar.getTimeInMillis();
     }
 
+    // Nastavení časovače pro odeslání hlášení
     public void setTimer(int messageType) {
 
-        if (messageType == MESSAGE_TYPE_START) {
-            PrefsUtils.saveMsgStartSent(this, false);
-            PrefsUtils.saveMsgStartDelivered(this, false);
-        } else if (messageType == MESSAGE_TYPE_END) {
-            PrefsUtils.saveMsgEndSent(this, false);
-            PrefsUtils.saveMsgEndDelivered(this, false);
-        }
+        Log.d(LOG_TAG_SMS, "MainActivity - setTimer(" + messageTypeToString(messageType) + ")");
+
+        PrefsUtils.saveIsReportSent(this, false, messageType);
+        PrefsUtils.saveIsReportDelivered(this, false, messageType);
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
@@ -325,14 +296,18 @@ public class MainActivity extends AppCompatActivity implements
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
+        long time = getTimeInMillis(messageType);
+        PrefsUtils.saveTimer(this, messageType, time);
+
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, getTimeInMillis(messageType), pendingIntent);
+        am.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
+
         PrefsUtils.setIsTimer(this, messageType, true);
         PrefsUtils.setLastReportTime(this, getTimeInMillis(messageType), messageType);
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateBtnCancelTimer(messageType);
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateNextTimerInfo(messageType);
+            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
+            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
         }
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
@@ -340,7 +315,11 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+    // Zrušení časovače pro odeslání hlášení
     public void cancelTimer(int messageType) {
+
+        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimer(" + messageTypeToString(messageType) + ")");
+
         Intent intent = new Intent(this, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this,
@@ -350,17 +329,70 @@ public class MainActivity extends AppCompatActivity implements
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.cancel(pendingIntent);
+
         PrefsUtils.setIsTimer(this, messageType, false);
         PrefsUtils.setLastReportTime(this, -1, messageType);
 
+        // Vynulování příznaků o odeslání a doručení hlášení
+        PrefsUtils.saveIsReportSent(this, false, messageType);
+        PrefsUtils.saveIsReportDelivered(this, false, messageType);
+
+        // Zrušení alarmů při neodeslání a nedoručení hlášení
+        PrefsUtils.setNoSentAlarm(this, false, messageType);
+        PrefsUtils.setNoDeliveredAlarm(this, false, messageType);
+
         if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateBtnCancelTimer(messageType);
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateNextTimerInfo(messageType);
+            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
+            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
         }
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
             ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateLastReportInfo();
         }
+    }
+
+    // Při neodeslání nebo nedorušení hlášení
+    public void setTimerForError(int messageType, int errorType) {
+
+        Log.d(LOG_TAG_SMS, "MainActivity - setTimerForError(" + messageTypeToString(messageType) + ", " + errorTypeToString(errorType) + ")");
+
+        Intent intent = new Intent(this, TimerReceiver.class);
+        intent.putExtra("message_type", messageType);
+        intent.putExtra("error_type", errorType);
+
+        //Příznak pro Receiver, že jde o budík pro kontrolu odeslání nebo doručení hlášení
+        intent.putExtra("alarm_check_error", 1);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                ALARM_REQUEST_ERROR,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, getTimeForErrorAlarm(messageType), pendingIntent);
+    }
+
+    public void cancelTimerForError(int messageType) {
+
+        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimerForError(" + messageTypeToString(messageType) + ")");
+
+        Intent intent = new Intent(this, TimerReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                ALARM_REQUEST_ERROR,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.cancel(pendingIntent);
+
+        PrefsUtils.setNoSentAlarm(this, false, messageType);
+        PrefsUtils.setNoDeliveredAlarm(this, false, messageType);
+    }
+
+    public long getTimeForErrorAlarm(int messageType) {
+        return PrefsUtils.getTimer(this, messageType) + 20000;//300000;
     }
 
     private void checkSettings() {
@@ -371,22 +403,17 @@ public class MainActivity extends AppCompatActivity implements
         if (appSettings.getEndMessage().equals("")) result = false;
 
         if (!result) {
-            AlertDialog.Builder dlgAlert = new AlertDialog.Builder(MainActivity.this);
-            dlgAlert.setTitle("Upozornění");
-            dlgAlert.setMessage("Aplikace není správně nastavena! Otevřít nastavení?");
-
-            dlgAlert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    showFragment(FRAGMENT_SETTINGS_NAME);
-                }
-            }).setNegativeButton("Zavřít", new DialogInterface.OnClickListener() {
+            DialogYesNo.createDialog(this)
+                    .setTitle("Upozornění")
+                    .setMessage("Aplikace není správně nastavena! Otevřít nastavení?")
+                    .setListener(new YesNoSelectedListener() {
                         @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.cancel();
+                        public void yesSelected() {
+                            showFragment(FRAGMENT_SETTINGS_NAME);
                         }
-                    });
 
-            dlgAlert.show();
+                        @Override public void noSelected() {}
+                    }).show();
         }
     }
 
@@ -413,93 +440,79 @@ public class MainActivity extends AppCompatActivity implements
         return null;
     }
 
-    public void checkSmsPermissionGranted() {
+    public boolean checkSmsPermissionGranted() {
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
 
         // Bylo již udělení oprávnění definitivně odepřeno?
         if (PrefsUtils.isDefinitiveRejection(this)) {
             showDialogSettings();
-            return;
+            return false;
         }
 
         if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
             // Udělení oprávnění uděleno již dříve
             Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
+            return true;
         } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
             // Udělení oprávnění již bylo odmítnuto (nezaškrtnuto políčko "Příště se neptat")
             showDialogExplanation();
+            return false;
         } else {
             // Zobrazení informačního doalogu před zobrazením systémové žádosti
             showDialogInfo(Manifest.permission.SEND_SMS, "Pro odesílání SMS bude nutné této aplikaci udělit oprávnění. Pokračovat k udělení oprávnění?");
+            return false;
         }
     }
 
     public void showDialogSettings() {
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
-        alertDialogBuilder.setTitle(R.string.additional_permission);
-
-        alertDialogBuilder
-                .setMessage(R.string.permissions_settings_info)
-                .setCancelable(false)
-                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
+        DialogYesNo.createDialog(this)
+                .setTitle(getResources().getString(R.string.additional_permission))
+                .setMessage(getResources().getString(R.string.permissions_settings_info))
+                .setListener(new YesNoSelectedListener() {
+                    @Override
+                    public void yesSelected() {
                         Intent intent = new Intent();
                         intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                         Uri uri = Uri.fromParts("package", getPackageName(), null);
                         intent.setData(uri);
                         startActivity(intent);
                     }
-                })
-                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+
+                    @Override public void noSelected() {
                         return;
                     }
-                });
-
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.show();
+                }).show();
     }
 
     // Zobrazení dialogového okna s vysvětlením důvodu potřeby udělení oprávnění před zobrazením
     // systémového dialogového okna s žádostí a s možností zaškrtnutí políčka "Příště se neptat".
     public void showDialogExplanation() {
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
-        alertDialogBuilder.setTitle("SMS");
-
-        alertDialogBuilder
-                .setMessage(R.string.permission_explanation)
-                .setCancelable(false)
-                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
+        DialogYesNo.createDialog(this)
+                .setTitle("SMS")
+                .setMessage(getResources().getString(R.string.permission_explanation))
+                .setListener(new YesNoSelectedListener() {
+                    @Override
+                    public void yesSelected() {
                         ActivityCompat.requestPermissions(
                                 MainActivity.this,
                                 new String[]{Manifest.permission.SEND_SMS},
                                 SMS_PERMISSION_REQUEST);
                     }
-                })
-                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+
+                    @Override public void noSelected() {
                         return;
                     }
-                });
-
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.show();
+                }).show();
     }
 
     public void showDialogInfo(final String permission, String message) {
-
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
-        alertDialogBuilder.setTitle(R.string.request_permission);
-
-        alertDialogBuilder
+        DialogYesNo.createDialog(this)
+                .setTitle(getResources().getString(R.string.request_permission))
                 .setMessage(message)
-                .setCancelable(false)
-                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
+                .setListener(new YesNoSelectedListener() {
+                    @Override
+                    public void yesSelected() {
                         if (permission.equals(Manifest.permission.SEND_SMS)) {
 
                             ActivityCompat.requestPermissions(
@@ -510,16 +523,11 @@ public class MainActivity extends AppCompatActivity implements
                             // ... jiné postupy dle typu oprávnění
                         }
                     }
-                })
-                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+
+                    @Override public void noSelected() {
                         return;
                     }
-                });
-
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.show();
+                }).show();
     }
 
     @Override
@@ -542,6 +550,19 @@ public class MainActivity extends AppCompatActivity implements
     public AppSettings getAppSettings() {
         appSettings = PrefsUtils.getAppSettings(this);
         return appSettings;
+    }
+
+    public String messageTypeToString(int messageType) {
+        if (messageType == MESSAGE_TYPE_START) return "MESSAGE_TYPE_START";
+        if (messageType == MESSAGE_TYPE_END) return "MESSAGE_TYPE_END";
+        if (messageType == MESSAGE_TYPE_BOTH) return "MESSAGE_TYPE_BOTH";
+        return "";
+    }
+
+    public String errorTypeToString(int errorType) {
+        if (errorType == ERROR_TYPE_NO_SENT) return "ERROR_TYPE_NO_SENT";
+        if (errorType == ERROR_TYPE_NO_DELIVERED) return "ERROR_TYPE_NO_DELIVERED";
+        return "";
     }
 
     private void initStetho() {

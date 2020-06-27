@@ -31,6 +31,24 @@ public class Animators {
         animatorSet.start();
     }
 
+    public static void animateButton(View view) {
+
+        ObjectAnimator objectAnimatorScaleX = ObjectAnimator.ofFloat(view, View.SCALE_X, 1.05f, 1f);
+        objectAnimatorScaleX.setInterpolator(new LinearInterpolator());
+        objectAnimatorScaleX.setRepeatMode(ObjectAnimator.REVERSE);
+
+        ObjectAnimator objectAnimatorScaleY = ObjectAnimator.ofFloat(view, View.SCALE_Y, 1.05f, 1f);
+        objectAnimatorScaleY.setInterpolator(new LinearInterpolator());
+        objectAnimatorScaleY.setRepeatMode(ObjectAnimator.REVERSE);
+
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setStartDelay(300);
+        animatorSet.setDuration(300);
+
+        animatorSet.playTogether(objectAnimatorScaleX, objectAnimatorScaleY);
+        animatorSet.start();
+    }
+
     public static void showViewSmoothly(final View view) {
         if (view == null) return;
         view.animate().alpha(1f).setDuration(400).start();

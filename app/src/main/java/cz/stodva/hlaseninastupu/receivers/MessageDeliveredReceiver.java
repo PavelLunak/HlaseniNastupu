@@ -11,16 +11,11 @@ import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 public class MessageDeliveredReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d(AppConstants.LOG_TAG, "MessageDeliveredReceiver - onReceive");
+        Log.d(AppConstants.LOG_TAG_SMS, "MessageDeliveredReceiver - onReceive");
 
         if (intent.hasExtra("message_type")) {
-            Log.d(AppConstants.LOG_TAG, "intent hasExtra: " + intent.getIntExtra("message_type", -1));
-
-            if (intent.getIntExtra("message_type", -1) == AppConstants.MESSAGE_TYPE_START) {
-                PrefsUtils.saveMsgStartDelivered(context, true);
-            } else {
-                PrefsUtils.saveMsgEndDelivered(context, true);
-            }
+            Log.d(AppConstants.LOG_TAG_SMS, "intent hasExtra : " + intent.getIntExtra("message_type", -1));
+            PrefsUtils.saveIsReportDelivered(context, true, intent.getIntExtra("message_type", -1));
         }
 
         Intent intentResult = new Intent(AppConstants.ACTION_SMS_DELIVERED);

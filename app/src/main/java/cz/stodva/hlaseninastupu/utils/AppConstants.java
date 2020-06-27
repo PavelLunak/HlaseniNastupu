@@ -3,6 +3,8 @@ package cz.stodva.hlaseninastupu.utils;
 public interface AppConstants {
 
     String LOG_TAG = "log_tag";
+    String LOG_TAG_SMS = "log_tag_sms";
+    String LOG_TAG_SERVICE = "log_tag_service";
 
     String MESSAGE_STRAT = "NASTUP";
     String MESSAGE_END = "KONEC";
@@ -10,6 +12,7 @@ public interface AppConstants {
 
     int ALARM_REQUEST_CODE_START = 12345;
     int ALARM_REQUEST_CODE_END = 54321;
+    int ALARM_REQUEST_ERROR = 64321;
 
     int SENT_REQUEST_START = 12346;
     int SENT_REQUEST_END = 54322;
@@ -23,6 +26,10 @@ public interface AppConstants {
 
     int MESSAGE_TYPE_START = 1;
     int MESSAGE_TYPE_END = 2;
+    int MESSAGE_TYPE_BOTH = 3;
+
+    int ERROR_TYPE_NO_SENT = 1;
+    int ERROR_TYPE_NO_DELIVERED = 2;
 
     int SMS_PERMISSION_REQUEST = 1;
 
