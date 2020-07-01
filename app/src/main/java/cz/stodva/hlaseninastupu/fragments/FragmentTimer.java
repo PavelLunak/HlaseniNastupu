@@ -33,11 +33,12 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
 
     TextView labelDateStart, labelDateEnd, labelTimeStart, labelTimeEnd;
     TextView btnOkStart, btnOkEnd;
-    TextView titleStartTime, titleEndTime, labelNextTimerStart, labelNextTimerEnd;
+    TextView titleStartTime, titleEndTime;
+    TextView labelNextTimerStart, labelNextTimerEnd;
     Button btnCancelTimerStart, btnCancelTimerEnd;
     LinearLayout layoutStart, layoutEnd;
-    CheckBox chbNoSentStart;//, chbNoDeliveredStart;
-    CheckBox chbNoSentEnd;//, chbNoDeliveredEnd;
+    CheckBox chbNoSentStart;
+    CheckBox chbNoSentEnd;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -66,14 +67,10 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
         layoutStart = view.findViewById(R.id.layoutStart);
         layoutEnd = view.findViewById(R.id.layoutEnd);
         chbNoSentStart = view.findViewById(R.id.chbNoSentStart);
-        //chbNoDeliveredStart = view.findViewById(R.id.chbNoDeliveredStart);
         chbNoSentEnd = view.findViewById(R.id.chbNoSentEnd);
-        //chbNoDeliveredEnd = view.findViewById(R.id.chbNoDeliveredEnd);
 
         chbNoSentStart.setOnCheckedChangeListener(this);
-        //chbNoDeliveredStart.setOnCheckedChangeListener(this);
         chbNoSentEnd.setOnCheckedChangeListener(this);
-        //chbNoDeliveredEnd.setOnCheckedChangeListener(this);
 
         return view;
     }
@@ -165,7 +162,7 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                 Animators.animateButtonClick(btnOkStart, true);
 
                 if (activity.checkTimeInput(MESSAGE_TYPE_START))
-                    activity.setTimer(MESSAGE_TYPE_START);
+                    activity.setTimer(MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
             }
         });
 
@@ -174,7 +171,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
             public void onClick(View v) {
                 Animators.animateButtonClick(btnOkEnd, true);
 
-                if (activity.checkTimeInput(MESSAGE_TYPE_END)) activity.setTimer(MESSAGE_TYPE_END);
+                if (activity.checkTimeInput(MESSAGE_TYPE_END))
+                    activity.setTimer(MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
             }
         });
 
@@ -195,8 +193,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
 
     public void updateLayoutsVisibility() {
         SimpleDateFormat sdf = new SimpleDateFormat("d.MM. yyyy  k:mm");
-        long nextTimerStart = PrefsUtils.getLastTimer(activity, MESSAGE_TYPE_START);
-        long nextTimerEnd = PrefsUtils.getLastTimer(activity, MESSAGE_TYPE_END);
+        long nextTimerStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST);
+        long nextTimerEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST);
 
         labelNextTimerStart.setText(sdf.format(nextTimerStart));
         labelNextTimerEnd.setText(sdf.format(nextTimerEnd));
@@ -214,7 +212,6 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
         if (show) {
             layoutStart. setVisibility(View.VISIBLE);
             Animators.animateButton(chbNoSentStart);
-            //Animators.animateButton(chbNoDeliveredStart);
         } else {
             layoutStart. setVisibility(View.GONE);
         }
@@ -224,7 +221,6 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
         if (show) {
             layoutEnd. setVisibility(View.VISIBLE);
             Animators.animateButton(chbNoSentEnd);
-            //Animators.animateButton(chbNoDeliveredEnd);
         } else {
             layoutEnd. setVisibility(View.GONE);
         }
@@ -234,8 +230,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         switch (buttonView.getId()) {
             case R.id.chbNoSentStart:
-                PrefsUtils.setNoSentAlarm(activity, isChecked, MESSAGE_TYPE_START);
-                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_START);
+                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_SENT);
+                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_DELIVERED);
 
                 if (isChecked) {
                     activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_SENT);
@@ -245,17 +241,9 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                 }
 
                 break;
-            /*
-            case R.id.chbNoDeliveredStart:
-                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_START);
-
-                if (isChecked) activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_DELIVERED);
-                else activity.cancelTimerForError(MESSAGE_TYPE_START);
-                break;
-            */
             case R.id.chbNoSentEnd:
-                PrefsUtils.setNoSentAlarm(activity, isChecked, MESSAGE_TYPE_END);
-                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_END);
+                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_END, ALARM_TYPE_NO_SENT);
+                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_END, ALARM_TYPE_NO_DELIVERED);
 
                 if (isChecked) {
                     activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_SENT);
@@ -266,14 +254,6 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                 }
 
                 break;
-            /*
-            case R.id.chbNoDeliveredEnd:
-                PrefsUtils.setNoDeliveredAlarm(activity, isChecked, MESSAGE_TYPE_END);
-
-                if (isChecked) activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_DELIVERED);
-                else activity.cancelTimerForError(MESSAGE_TYPE_END);
-                break;
-            */
         }
     }
 }

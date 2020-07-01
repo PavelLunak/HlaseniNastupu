@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#AFAFAF">
+    android:background="@drawable/bg_app">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,9 +16,7 @@
             android:id="@+id/linearLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
             android:layout_weight="0.5"
-            android:background="@drawable/bg_layout_timer_start"
             android:orientation="vertical">
 
             <TextView
@@ -38,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:text="Datum:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelDateStart"
@@ -57,7 +55,7 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center_horizontal"
                 android:text="Čas:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelTimeStart"
@@ -105,6 +103,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:text="Automatické hlášení nástupu:"
+                    android:textColor="@color/text_color"
                     android:textStyle="bold" />
 
                 <TextView
@@ -114,6 +113,7 @@
                     android:layout_marginBottom="10dp"
                     android:gravity="center_horizontal"
                     android:text="TextView"
+                    android:textColor="@color/text_color"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.498"
                     app:layout_constraintStart_toStartOf="parent"
@@ -124,7 +124,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:text="Při neodeslání budit" />
+                    android:text="Při neodeslání budit"
+                    android:textColor="@android:color/white" />
 
                 <!--
                 <CheckBox
@@ -139,15 +140,16 @@
 
         </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@color/text_color" />
+
         <LinearLayout
             android:id="@+id/linearLayout2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_marginBottom="5dp"
             android:layout_weight="0.5"
-            android:background="@drawable/bg_layout_timer_start"
             android:orientation="vertical">
 
             <TextView
@@ -167,7 +169,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:text="Datum:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelDateEnd"
@@ -186,7 +188,7 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center_horizontal"
                 android:text="Čas:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelTimeEnd"
@@ -234,6 +236,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:text="Automatické hlášení konce:"
+                    android:textColor="@color/text_color"
                     android:textStyle="bold" />
 
                 <TextView
@@ -243,6 +246,7 @@
                     android:layout_marginBottom="10dp"
                     android:gravity="center_horizontal"
                     android:text="TextView"
+                    android:textColor="@color/text_color"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.498"
                     app:layout_constraintStart_toStartOf="parent"
@@ -253,7 +257,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:text="Při neodeslání budit" />
+                    android:text="Při neodeslání budit"
+                    android:textColor="@android:color/white" />
 
                 <!--
                 <CheckBox

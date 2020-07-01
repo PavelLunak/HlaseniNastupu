@@ -1,167 +1,281 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#E1E1E1">
+    android:background="@drawable/bg_app">
 
-    <TextView
-        android:id="@+id/btnStartShift"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/bg_start_shift"
-        android:gravity="center_horizontal"
-        android:padding="10dp"
-        android:text="NÁSTUP"
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/btnEndShift"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/bg_end_shift"
-        android:gravity="center_horizontal"
-        android:padding="10dp"
-        android:text="KONEC"
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnStartShift" />
-
-    <TextView
-        android:id="@+id/btnSetTimeForReport"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/bg_set_time"
-        android:gravity="center_horizontal"
-        android:padding="10dp"
-        android:text="AUTOMAT"
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnEndShift" />
-
-    <ImageButton
-        android:id="@+id/btnSettings"
-        android:layout_width="50dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="@+id/btnSetTimeForReport"
-        app:layout_constraintTop_toBottomOf="@+id/btnSetTimeForReport"
-        app:srcCompat="@drawable/ic_settings" />
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="Stav posledního (následujícího) hlášení:"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnTest" />
-
-    <RelativeLayout
-        android:id="@+id/layoutLastTimerStart"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textView2">
-
-        <ImageView
-            android:id="@+id/imgDeliveredSart"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="10dp"
-            app:srcCompat="@drawable/ic_check_gray" />
-
-        <ImageView
-            android:id="@+id/imgSentStart"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="15dp"
-            app:srcCompat="@drawable/ic_check_gray" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <TextView
-            android:id="@+id/labelLastTimerStart"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnStartShift"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_toLeftOf="@id/imgSentStart"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_start_shift"
+            android:gravity="center_horizontal"
             android:padding="10dp"
-            android:text="TextView" />
-
-    </RelativeLayout>
-
-    <RelativeLayout
-        android:id="@+id/layoutLastTimerEnd"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/layoutLastTimerStart">
-
-        <ImageView
-            android:id="@+id/imgDeliveredEnd"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="10dp"
-            app:srcCompat="@drawable/ic_check_gray" />
-
-        <ImageView
-            android:id="@+id/imgSentEnd"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="15dp"
-            app:srcCompat="@drawable/ic_check_gray" />
+            android:text="NÁSTUP"
+            android:textColor="#45FF00"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/labelLastTimerEnd"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnEndShift"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_toLeftOf="@id/imgSentEnd"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_end_shift"
+            android:gravity="center_horizontal"
             android:padding="10dp"
-            android:text="TextView" />
+            android:text="KONEC"
+            android:textColor="#FA6363"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnStartShift" />
 
-    </RelativeLayout>
+        <TextView
+            android:id="@+id/btnSetTimeForReport"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_set_time"
+            android:gravity="center_horizontal"
+            android:padding="10dp"
+            android:text="AUTOMAT"
+            android:textColor="#2196F3"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnEndShift" />
 
-    <Button
-        android:id="@+id/btnTest"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Prefs"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btnSettings"
-        app:layout_constraintTop_toBottomOf="@+id/btnSetTimeForReport" />
+        <RelativeLayout
+            android:id="@+id/layoutNextTimer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:padding="10dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnSetTimeForReport">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/titleNextTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Následující hlášení"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <RelativeLayout
+                android:id="@+id/layoutNextTimerStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/titleNextTimer">
+
+                <TextView
+                    android:id="@+id/titleNextTimerStart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:text="Nástup: "
+                    android:textColor="@color/text_color" />
+
+                <TextView
+                    android:id="@+id/labelNextTimerStart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/titleNextTimerStart"
+                    android:padding="10dp"
+                    android:text="TextView"
+                    android:textColor="@color/text_color" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/layoutNextTimerEnd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/layoutNextTimerStart">
+
+                <TextView
+                    android:id="@+id/titleNextTimerEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:text="Konec:"
+                    android:textColor="@color/text_color" />
+
+                <TextView
+                    android:id="@+id/labelNextTimerEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/titleNextTimerEnd"
+                    android:padding="10dp"
+                    android:text="TextView"
+                    android:textColor="@color/text_color" />
+
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_margin="10dp"
+            android:background="#656565"
+            app:layout_constraintTop_toBottomOf="@+id/layoutNextTimer" />
+
+        <RelativeLayout
+            android:id="@+id/layoutLastTimer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/view">
+
+            <TextView
+                android:id="@+id/titleLastTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Poslední hlášení"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <RelativeLayout
+                android:id="@+id/layoutLastTimerStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/titleLastTimer">
+
+                <ImageView
+                    android:id="@+id/imgLastDeliveredSart"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="10dp"
+                    app:srcCompat="@drawable/ic_check_gray" />
+
+                <ImageView
+                    android:id="@+id/imgLastSentStart"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="15dp"
+                    app:srcCompat="@drawable/ic_check_gray" />
+
+                <ImageView
+                    android:id="@+id/imgStartWarn"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="10dp"
+                    android:layout_toLeftOf="@id/imgLastSentStart"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_warning" />
+
+                <TextView
+                    android:id="@+id/titleLastTimerStart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:text="Nástup: "
+                    android:textColor="@color/text_color" />
+
+                <TextView
+                    android:id="@+id/labelLastTimerStart"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toLeftOf="@id/imgLastSentStart"
+                    android:layout_toRightOf="@id/titleLastTimerStart"
+                    android:padding="10dp"
+                    android:text="TextView"
+                    android:textColor="@color/text_color" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/layoutLastTimerEnd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/layoutLastTimerStart">
+
+                <ImageView
+                    android:id="@+id/imgLastDeliveredEnd"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="10dp"
+                    app:srcCompat="@drawable/ic_check_gray" />
+
+                <ImageView
+                    android:id="@+id/imgLastSentEnd"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="15dp"
+                    app:srcCompat="@drawable/ic_check_gray" />
+
+                <ImageView
+                    android:id="@+id/imgEndWarn"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_centerVertical="true"
+                    android:layout_marginRight="10dp"
+                    android:layout_toLeftOf="@id/imgLastSentEnd"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_warning" />
+
+                <TextView
+                    android:id="@+id/titleLastTimerEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:text="Konec:"
+                    android:textColor="@color/text_color" />
+
+                <TextView
+                    android:id="@+id/labelLastTimerEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toLeftOf="@id/imgLastSentEnd"
+                    android:layout_toRightOf="@id/titleLastTimerEnd"
+                    android:padding="10dp"
+                    android:text="TextView"
+                    android:textColor="@color/text_color" />
+
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

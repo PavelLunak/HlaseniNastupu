@@ -1,7 +1,9 @@
 package cz.stodva.hlaseninastupu;
 
+import androidx.annotation.DrawableRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -20,7 +22,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.telephony.PhoneStateListener;
+import android.telephony.ServiceState;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
@@ -35,7 +43,9 @@ import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.AppSettings;
 import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
+import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
+import cz.stodva.hlaseninastupu.utils.AppUtils;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 
@@ -63,6 +73,10 @@ public class MainActivity extends AppCompatActivity implements
     MediaPlayer mediaPlayer;
     AppSettings appSettings;
 
+    TextView labelToolbar;
+    ImageView imgToolbar;
+
+    // TODO následujíci dva receivery by šli sloučit
     private BroadcastReceiver smsSentBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -70,10 +84,15 @@ public class MainActivity extends AppCompatActivity implements
 
             if (intent.getAction().equals(ACTION_SMS_SENT)){
                 Log.d(LOG_TAG, "ACTION_SMS_SENT");
-                Log.d(AppConstants.LOG_TAG, "intent hasExtra: " + intent.getIntExtra("message_type", -1));
+
+                int messageType = intent.getIntExtra("message_type", -1);
+                int reportType = intent.getIntExtra("report_type", -1);
+
+                Log.d(AppConstants.LOG_TAG, "message type: " + AppUtils.messageTypeToString(messageType));
+                Log.d(AppConstants.LOG_TAG, "report type: " + AppUtils.reportTypeToString(reportType));
 
                 FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
-                if (fm != null) fm.updateLastReportInfo();
+                if (fm != null) fm.updateReportInfo();
             }
         }
     };
@@ -85,21 +104,15 @@ public class MainActivity extends AppCompatActivity implements
 
             if (intent.getAction().equals(ACTION_SMS_DELIVERED)) {
                 Log.d(LOG_TAG, "ACTION_SMS_DELIVERED");
-                Log.d(AppConstants.LOG_TAG, "intent hasExtra: " + intent.getIntExtra("message_type", -1));
+
+                int messageType = intent.getIntExtra("message_type", -1);
+                int reportType = intent.getIntExtra("report_type", -1);
+
+                Log.d(AppConstants.LOG_TAG, "message type: " + AppUtils.messageTypeToString(messageType));
+                Log.d(AppConstants.LOG_TAG, "report type: " + AppUtils.reportTypeToString(reportType));
 
                 FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
-
-                if (fm != null) {
-                    int msgType = intent.getIntExtra("message_type", -1);
-
-                    if (msgType == MESSAGE_TYPE_START) {
-                        fm.getImgResult(R.id.imgDeliveredSart).setImageDrawable(AppCompatResources.getDrawable(MainActivity.this, R.drawable.ic_check_green));
-                    } else if (msgType == MESSAGE_TYPE_END) {
-                        fm.getImgResult(R.id.imgDeliveredEnd).setImageDrawable(AppCompatResources.getDrawable(MainActivity.this, R.drawable.ic_check_green));
-                    } else {
-                        Log.d(LOG_TAG, "bad message type");
-                    }
-                }
+                if (fm != null) fm.updateReportInfo();
             }
         }
     };
@@ -110,10 +123,29 @@ public class MainActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        labelToolbar = findViewById(R.id.labelToolbar);
+        imgToolbar = findViewById(R.id.imgToolbar);
+
         initStetho();
 
         fragmentManager = getSupportFragmentManager();
         fragmentManager.addOnBackStackChangedListener(this);
+
+        imgToolbar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgToolbar, true);
+
+                int lastBeIndex = fragmentManager.getBackStackEntryCount() - 1;
+                if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_MAIN_NAME)) {
+                    showFragment(FRAGMENT_SETTINGS_NAME);
+                } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_SETTINGS_NAME)) {
+                    onBackPressed();
+                } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_TIMER_NAME)) {
+                    onBackPressed();
+                }
+            }
+        });
 
         if (savedInstanceState == null) {
             showFragment(FRAGMENT_MAIN_NAME);
@@ -130,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements
                 String errMsg = incommingIntent.getStringExtra("error_message");
                 int msgType = incommingIntent.getIntExtra("messageType", -1);
 
-                Log.d(LOG_TAG_SMS, "message type : " + messageTypeToString(msgType));
+                Log.d(LOG_TAG_SMS, "message type : " + AppUtils.messageTypeToString(msgType));
                 Log.d(LOG_TAG_SMS, "error message : " + errMsg);
 
                 if (errMsg != null) {
@@ -159,6 +191,12 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        onBackStackChanged();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(smsSentBroadcastReceiver);
@@ -183,7 +221,25 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onBackStackChanged() {
+        int lastBeIndex = fragmentManager.getBackStackEntryCount() - 1;
+        if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_MAIN_NAME)) {
+            updateToolbarText(getString(R.string.app_name));
+            updateToolbarImage(R.drawable.ic_settings_white);
+        } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_SETTINGS_NAME)) {
+            updateToolbarText(FRAGMENT_SETTINGS);
+            updateToolbarImage(R.drawable.ic_back);
+        } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_TIMER_NAME)) {
+            updateToolbarText(FRAGMENT_TIMER);
+            updateToolbarImage(R.drawable.ic_back);
+        }
+    }
 
+    public void updateToolbarText(String text) {
+        labelToolbar.setText(text);
+    }
+
+    public void updateToolbarImage(@DrawableRes int resId) {
+        imgToolbar.setImageResource(resId);
     }
 
     public void showFragment(String name) {
@@ -280,15 +336,13 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     // Nastavení časovače pro odeslání hlášení
-    public void setTimer(int messageType) {
+    public void setTimer(int messageType, int reportType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - setTimer(" + messageTypeToString(messageType) + ")");
-
-        PrefsUtils.saveIsReportSent(this, false, messageType);
-        PrefsUtils.saveIsReportDelivered(this, false, messageType);
+        Log.d(LOG_TAG_SMS, "MainActivity - setTimer(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
+        intent.putExtra("report_type", reportType);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this,
@@ -297,13 +351,21 @@ public class MainActivity extends AppCompatActivity implements
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         long time = getTimeInMillis(messageType);
-        PrefsUtils.saveTimer(this, messageType, time);
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
 
+        // Nastavení příznaku o nastavení časovače
         PrefsUtils.setIsTimer(this, messageType, true);
-        PrefsUtils.setLastReportTime(this, getTimeInMillis(messageType), messageType);
+
+        // Uložení času automatického odeslání hlášení
+        PrefsUtils.setReportTime(this, time, messageType, REPORT_TYPE_NEXT);
+
+        // Vynulování příznaku o úspěšném odeslání hlášení
+        PrefsUtils.saveIsReportSent(this, false, messageType, REPORT_TYPE_NEXT);
+
+        // Vynulování příznaku o úspěšném doručení hlášení
+        PrefsUtils.saveIsReportDelivered(this, false, messageType, REPORT_TYPE_NEXT);
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
             ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
@@ -311,14 +373,14 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
-            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateLastReportInfo();
+            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateReportInfo();
         }
     }
 
     // Zrušení časovače pro odeslání hlášení
     public void cancelTimer(int messageType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimer(" + messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimer(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -331,15 +393,15 @@ public class MainActivity extends AppCompatActivity implements
         am.cancel(pendingIntent);
 
         PrefsUtils.setIsTimer(this, messageType, false);
-        PrefsUtils.setLastReportTime(this, -1, messageType);
+        PrefsUtils.setReportTime(this, PREFS_DELETE_KEY, messageType, REPORT_TYPE_NEXT);
 
         // Vynulování příznaků o odeslání a doručení hlášení
-        PrefsUtils.saveIsReportSent(this, false, messageType);
-        PrefsUtils.saveIsReportDelivered(this, false, messageType);
+        PrefsUtils.saveIsReportSent(this, false, messageType, REPORT_TYPE_NEXT);
+        PrefsUtils.saveIsReportDelivered(this, false, messageType, REPORT_TYPE_NEXT);
 
         // Zrušení alarmů při neodeslání a nedoručení hlášení
-        PrefsUtils.setNoSentAlarm(this, false, messageType);
-        PrefsUtils.setNoDeliveredAlarm(this, false, messageType);
+        PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_SENT);
+        PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_DELIVERED);
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
             ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
@@ -347,14 +409,14 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
-            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateLastReportInfo();
+            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateReportInfo();
         }
     }
 
-    // Při neodeslání nebo nedorušení hlášení
+    // Nastavení časovače pro kontrolu odeslání a doručení následujícího hlášení
     public void setTimerForError(int messageType, int errorType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - setTimerForError(" + messageTypeToString(messageType) + ", " + errorTypeToString(errorType) + ")");
+        Log.d(LOG_TAG_SMS, "MainActivity - setTimerForError(" + AppUtils.messageTypeToString(messageType) + ", " + AppUtils.errorTypeToString(errorType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
@@ -370,12 +432,12 @@ public class MainActivity extends AppCompatActivity implements
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, getTimeForErrorAlarm(messageType), pendingIntent);
+        am.set(AlarmManager.RTC_WAKEUP, getTimeForErrorAlarm(messageType, REPORT_TYPE_NEXT), pendingIntent);
     }
 
     public void cancelTimerForError(int messageType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimerForError(" + messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimerForError(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -387,12 +449,12 @@ public class MainActivity extends AppCompatActivity implements
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.cancel(pendingIntent);
 
-        PrefsUtils.setNoSentAlarm(this, false, messageType);
-        PrefsUtils.setNoDeliveredAlarm(this, false, messageType);
+        PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_SENT);
+        PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_DELIVERED);
     }
 
-    public long getTimeForErrorAlarm(int messageType) {
-        return PrefsUtils.getTimer(this, messageType) + 20000;//300000;
+    public long getTimeForErrorAlarm(int messageType, int reportType) {
+        return PrefsUtils.getReportTime(this, messageType, reportType) + 20000;//300000;
     }
 
     private void checkSettings() {
@@ -550,19 +612,6 @@ public class MainActivity extends AppCompatActivity implements
     public AppSettings getAppSettings() {
         appSettings = PrefsUtils.getAppSettings(this);
         return appSettings;
-    }
-
-    public String messageTypeToString(int messageType) {
-        if (messageType == MESSAGE_TYPE_START) return "MESSAGE_TYPE_START";
-        if (messageType == MESSAGE_TYPE_END) return "MESSAGE_TYPE_END";
-        if (messageType == MESSAGE_TYPE_BOTH) return "MESSAGE_TYPE_BOTH";
-        return "";
-    }
-
-    public String errorTypeToString(int errorType) {
-        if (errorType == ERROR_TYPE_NO_SENT) return "ERROR_TYPE_NO_SENT";
-        if (errorType == ERROR_TYPE_NO_DELIVERED) return "ERROR_TYPE_NO_DELIVERED";
-        return "";
     }
 
     private void initStetho() {
