@@ -27,7 +27,8 @@ public class MessageDeliveredReceiver extends BroadcastReceiver {
         }
 
         // Odeslání informace o úspěšném odeslání hlášení do MainActivity (pokud je aplikace spuštěna)
-        Intent intentResult = new Intent(AppConstants.ACTION_SMS_DELIVERED);
+        //Intent intentResult = new Intent(AppConstants.ACTION_SMS_DELIVERED);
+        Intent intentResult = new Intent(AppConstants.ACTION_REPORT_RESULT);
         intentResult.putExtra("message_type", messageType);
         intentResult.putExtra("report_type", reportType);
         context.sendBroadcast(intentResult);

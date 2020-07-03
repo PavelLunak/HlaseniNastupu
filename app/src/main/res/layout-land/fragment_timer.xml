@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:text="Datum:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelDateStart"
@@ -55,7 +55,7 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center_horizontal"
                 android:text="Čas:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelTimeStart"
@@ -164,7 +164,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:text="Datum:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelDateEnd"
@@ -183,7 +183,7 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center_horizontal"
                 android:text="Čas:"
-                android:textColor="#000000" />
+                android:textColor="@color/text_color" />
 
             <TextView
                 android:id="@+id/labelTimeEnd"

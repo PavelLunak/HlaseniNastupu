@@ -20,7 +20,7 @@ public class PrefsUtils implements AppConstants {
     }
 
     public static void setIsTimer(Context context, int messageType, boolean isSet) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - setIsTimer(" + AppUtils.messageTypeToString(messageType) + ", is set: " + isSet + ")");
+        Log.d(LOG_TAG_SMS, "(901) PrefsUtils - setIsTimer(" + AppUtils.messageTypeToString(messageType) + ", is set: " + isSet + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
@@ -35,21 +35,21 @@ public class PrefsUtils implements AppConstants {
     }
 
     public static boolean isTimerSet(Context context,  int messageType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - isTimerSet(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(902) PrefsUtils - isTimerSet(" + AppUtils.messageTypeToString(messageType) + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
         if (messageType == MESSAGE_TYPE_START) {
-            Log.d(LOG_TAG_SMS, "is set: " + sp.getBoolean("is_timer_start", false));
+            Log.d(LOG_TAG_SMS, "(903) is set: " + sp.getBoolean("is_timer_start", false));
             return sp.getBoolean("is_timer_start", false);
         } else {
-            Log.d(LOG_TAG_SMS, "is set: " + sp.getBoolean("is_timer_start", false));
+            Log.d(LOG_TAG_SMS, "(904) is set: " + sp.getBoolean("is_timer_start", false));
             return sp.getBoolean("is_timer_end", false);
         }
     }
 
     public static void setReportTime(Context context, long time, int messageType, int reportType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - setReportTime(" +
+        Log.d(LOG_TAG_SMS, "(905) PrefsUtils - setReportTime(" +
                 AppUtils.messageTypeToString(messageType) +
                 ", time: " +
                 timeToString(time) + ", " +
@@ -81,28 +81,28 @@ public class PrefsUtils implements AppConstants {
     }
 
     public static long getReportTime(Context context,  int messageType, int reportType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - getReportTime(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(906) PrefsUtils - getReportTime(" + AppUtils.messageTypeToString(messageType) + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
         if (messageType == MESSAGE_TYPE_START) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_START");
+            Log.d(LOG_TAG_SMS, "(907) messageType == MESSAGE_TYPE_START");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT: " + sdf.format(sp.getLong("next_report_start", -1)));
+                Log.d(LOG_TAG_SMS, "(908) reportType == REPORT_TYPE_NEXT: " + sdf.format(sp.getLong("next_report_start", -1)));
                 return sp.getLong("next_report_start", -1);
             } else {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST :" + sdf.format(sp.getLong("last_report_start", -1)));
+                Log.d(LOG_TAG_SMS, "(909) reportType == REPORT_TYPE_LAST :" + sdf.format(sp.getLong("last_report_start", -1)));
                 return sp.getLong("last_report_start", -1);
             }
         } else {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_END");
+            Log.d(LOG_TAG_SMS, "(910) messageType == MESSAGE_TYPE_END");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT: " + sdf.format(sp.getLong("next_report_end", -1)));
+                Log.d(LOG_TAG_SMS, "(911) reportType == REPORT_TYPE_NEXT: " + sdf.format(sp.getLong("next_report_end", -1)));
                 return sp.getLong("next_report_end", -1);
             } else {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST :" + sdf.format(sp.getLong("last_report_end", -1)));
+                Log.d(LOG_TAG_SMS, "(912) reportType == REPORT_TYPE_LAST :" + sdf.format(sp.getLong("last_report_end", -1)));
                 return sp.getLong("last_report_end", -1);
             }
         }
@@ -136,7 +136,7 @@ public class PrefsUtils implements AppConstants {
     // ---------- PŘÍZNAK ODESLÁNÍ HLÁŠENÍ ---------------------------------------------------------
 
     public static void saveIsReportSent(Context context, boolean sent, int messageType, int reportType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - saveIsReportSent(" + AppUtils.messageTypeToString(messageType) + ", is sent: " + sent + ")");
+        Log.d(LOG_TAG_SMS, "(913) PrefsUtils - saveIsReportSent(" + AppUtils.messageTypeToString(messageType) + ", is sent: " + sent + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
@@ -162,7 +162,7 @@ public class PrefsUtils implements AppConstants {
 
     public static boolean isReportSent(Context context, int messageType, int reportType) {
         Log.d(LOG_TAG_SMS,
-                "PrefsUtils - isReportSent(" +
+                "(914) PrefsUtils - isReportSent(" +
                         AppUtils.messageTypeToString(messageType) +
                         ", " +
                         AppUtils.reportTypeToString(reportType) +
@@ -171,29 +171,29 @@ public class PrefsUtils implements AppConstants {
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
         if (messageType == MESSAGE_TYPE_START) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_START");
+            Log.d(LOG_TAG_SMS, "(915) messageType == MESSAGE_TYPE_START");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT");
-                Log.d(LOG_TAG_SMS, "is sent: " + sp.getBoolean("next_report_start_sent", false));
+                Log.d(LOG_TAG_SMS, "(916) reportType == REPORT_TYPE_NEXT");
+                Log.d(LOG_TAG_SMS, "(917) is sent: " + sp.getBoolean("next_report_start_sent", false));
                 return sp.getBoolean("next_report_start_sent", false);
             } else if (reportType == REPORT_TYPE_LAST) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST");
-                Log.d(LOG_TAG_SMS, "is sent: " + sp.getBoolean("last_report_start_sent", false));
+                Log.d(LOG_TAG_SMS, "(918) reportType == REPORT_TYPE_LAST");
+                Log.d(LOG_TAG_SMS, "(919) is sent: " + sp.getBoolean("last_report_start_sent", false));
                 return sp.getBoolean("last_report_start_sent", false);
             } else {
-                Log.d(LOG_TAG_SMS, "reportType == UNKNOWN");
+                Log.d(LOG_TAG_SMS, "(920) reportType == UNKNOWN");
             }
         } else if (messageType == MESSAGE_TYPE_END) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_END");
+            Log.d(LOG_TAG_SMS, "(921) messageType == MESSAGE_TYPE_END");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT");
-                Log.d(LOG_TAG_SMS, "is sent: " + sp.getBoolean("next_report_end_sent", false));
+                Log.d(LOG_TAG_SMS, "(922) reportType == REPORT_TYPE_NEXT");
+                Log.d(LOG_TAG_SMS, "(923) is sent: " + sp.getBoolean("next_report_end_sent", false));
                 return sp.getBoolean("next_report_end_sent", false);
             } else if (reportType == REPORT_TYPE_LAST) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST");
-                Log.d(LOG_TAG_SMS, "is sent: " + sp.getBoolean("last_report_end_sent", false));
+                Log.d(LOG_TAG_SMS, "(924) reportType == REPORT_TYPE_LAST");
+                Log.d(LOG_TAG_SMS, "(925) is sent: " + sp.getBoolean("last_report_end_sent", false));
                 return sp.getBoolean("last_report_end_sent", false);
             }
         }
@@ -204,7 +204,7 @@ public class PrefsUtils implements AppConstants {
     // ---------- PŘÍZNAK DORUČENÍ HLÁŠENÍ ---------------------------------------------------------
 
     public static void saveIsReportDelivered(Context context, boolean delivered, int messageType, int reportType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - saveIsReportDelivered(" + AppUtils.messageTypeToString(messageType) + ", delivered: " + delivered + ")");
+        Log.d(LOG_TAG_SMS, "(926) PrefsUtils - saveIsReportDelivered(" + AppUtils.messageTypeToString(messageType) + ", delivered: " + delivered + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
@@ -229,32 +229,32 @@ public class PrefsUtils implements AppConstants {
     }
 
     public static boolean isReportDelivered(Context context, int messageType, int reportType) {
-        Log.d(LOG_TAG_SMS, "PrefsUtils - isReportDelivered(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(927) PrefsUtils - isReportDelivered(" + AppUtils.messageTypeToString(messageType) + ")");
 
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
         if (messageType == MESSAGE_TYPE_START) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_START");
+            Log.d(LOG_TAG_SMS, "(928) messageType == MESSAGE_TYPE_START");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT");
-                Log.d(LOG_TAG_SMS, "is delivered: " + sp.getBoolean("next_report_start_delivered", false));
+                Log.d(LOG_TAG_SMS, "(929) reportType == REPORT_TYPE_NEXT");
+                Log.d(LOG_TAG_SMS, "(930) is delivered: " + sp.getBoolean("next_report_start_delivered", false));
                 return sp.getBoolean("next_report_start_delivered", false);
             } else if (reportType == REPORT_TYPE_LAST) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST");
-                Log.d(LOG_TAG_SMS, "is delivered: " + sp.getBoolean("last_report_start_delivered", false));
+                Log.d(LOG_TAG_SMS, "(931) reportType == REPORT_TYPE_LAST");
+                Log.d(LOG_TAG_SMS, "(932) is delivered: " + sp.getBoolean("last_report_start_delivered", false));
                 return sp.getBoolean("last_report_start_delivered", false);
             }
         } else if (messageType == MESSAGE_TYPE_END) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_END");
+            Log.d(LOG_TAG_SMS, "(933) messageType == MESSAGE_TYPE_END");
 
             if (reportType == REPORT_TYPE_NEXT) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_NEXT");
-                Log.d(LOG_TAG_SMS, "is delivered: " + sp.getBoolean("next_report_end_delivered", false));
+                Log.d(LOG_TAG_SMS, "(934) reportType == REPORT_TYPE_NEXT");
+                Log.d(LOG_TAG_SMS, "(935) is delivered: " + sp.getBoolean("next_report_end_delivered", false));
                 return sp.getBoolean("next_report_end_delivered", false);
             } else if (reportType == REPORT_TYPE_LAST) {
-                Log.d(LOG_TAG_SMS, "reportType == REPORT_TYPE_LAST");
-                Log.d(LOG_TAG_SMS, "is delivered: " + sp.getBoolean("last_report_end_delivered", false));
+                Log.d(LOG_TAG_SMS, "(936) reportType == REPORT_TYPE_LAST");
+                Log.d(LOG_TAG_SMS, "(937) is delivered: " + sp.getBoolean("last_report_end_delivered", false));
                 return sp.getBoolean("last_report_end_delivered", false);
             }
         }
@@ -280,7 +280,7 @@ public class PrefsUtils implements AppConstants {
 
     public static void setAlarm(Context context, boolean isAlarm, int messageType, int alarmType) {
         Log.d(LOG_TAG_SMS,
-                "PrefsUtils - setAlarm(" +
+                "(938) PrefsUtils - setAlarm(" +
                         AppUtils.messageTypeToString(messageType) +
                         ", " +
                         AppUtils.alarmTypeToString(alarmType) +
@@ -296,7 +296,7 @@ public class PrefsUtils implements AppConstants {
         } else if (messageType == MESSAGE_TYPE_END){
             if (alarmType == ALARM_TYPE_NO_SENT) editor.putBoolean("no_sent_end_alarm", isAlarm);
             else if (alarmType == ALARM_TYPE_NO_DELIVERED) editor.putBoolean("no_delivered_end_alarm", isAlarm);
-        } else {
+        } else if (alarmType == ALARM_TYPE_BOTH){
             if (alarmType == ALARM_TYPE_NO_SENT) {
                 editor.putBoolean("no_sent_start_alarm", isAlarm);
                 editor.putBoolean("no_sent_end_alarm", isAlarm);
@@ -311,7 +311,7 @@ public class PrefsUtils implements AppConstants {
 
     public static boolean isAlarm(Context context, int messageType, int alarmType) {
         Log.d(LOG_TAG_SMS,
-                "PrefsUtils - isAlarm(" +
+                "(939) PrefsUtils - isAlarm(" +
                         AppUtils.messageTypeToString(messageType) +
                         ", " +
                         AppUtils.alarmTypeToString(alarmType) +
@@ -320,28 +320,34 @@ public class PrefsUtils implements AppConstants {
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
 
         if (messageType == MESSAGE_TYPE_START) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_START");
+            Log.d(LOG_TAG_SMS, "(940) messageType == MESSAGE_TYPE_START");
 
             if (alarmType == ALARM_TYPE_NO_SENT) {
-                Log.d(LOG_TAG_SMS, "alarmType == ALARM_TYPE_NO_SENT");
-                Log.d(LOG_TAG_SMS, "is alarm: " + sp.getBoolean("no_sent_start_alarm", false));
+                Log.d(LOG_TAG_SMS, "(941) alarmType == ALARM_TYPE_NO_SENT");
+                Log.d(LOG_TAG_SMS, "(942) is alarm: " + sp.getBoolean("no_sent_start_alarm", false));
                 return sp.getBoolean("no_sent_start_alarm", false);
-            } else {
-                Log.d(LOG_TAG_SMS, "alarmType == ALARM_TYPE_NO_DELIVERED");
-                Log.d(LOG_TAG_SMS, "is alarm: " + sp.getBoolean("no_delivered_start_alarm", false));
+            } else if (alarmType == ALARM_TYPE_NO_DELIVERED) {
+                Log.d(LOG_TAG_SMS, "(943) alarmType == ALARM_TYPE_NO_DELIVERED");
+                Log.d(LOG_TAG_SMS, "(944) is alarm: " + sp.getBoolean("no_delivered_start_alarm", false));
                 return sp.getBoolean("no_delivered_start_alarm", false);
+            } else if (alarmType == ALARM_TYPE_BOTH) {
+                Log.d(LOG_TAG_SMS, "(943_1) alarmType == ALARM_TYPE_NO_BOTH");
+                return sp.getBoolean("no_sent_start_alarm", false) || sp.getBoolean("no_delivered_start_alarm", false);
             }
         } else if (messageType == MESSAGE_TYPE_END) {
-            Log.d(LOG_TAG_SMS, "messageType == MESSAGE_TYPE_END");
+            Log.d(LOG_TAG_SMS, "(945) messageType == MESSAGE_TYPE_END");
 
             if (alarmType == ALARM_TYPE_NO_SENT) {
-                Log.d(LOG_TAG_SMS, "alarmType == ALARM_TYPE_NO_SENT");
-                Log.d(LOG_TAG_SMS, "is alarm: " + sp.getBoolean("no_sent_end_alarm", false));
+                Log.d(LOG_TAG_SMS, "(946) alarmType == ALARM_TYPE_NO_SENT");
+                Log.d(LOG_TAG_SMS, "(947) is alarm: " + sp.getBoolean("no_sent_end_alarm", false));
                 return sp.getBoolean("no_sent_end_alarm", false);
-            } else {
-                Log.d(LOG_TAG_SMS, "alarmType == ALARM_TYPE_NO_DELIVERED");
-                Log.d(LOG_TAG_SMS, "is alarm: " + sp.getBoolean("no_delivered_end_alarm", false));
+            } else if (alarmType == ALARM_TYPE_NO_DELIVERED) {
+                Log.d(LOG_TAG_SMS, "(948) alarmType == ALARM_TYPE_NO_DELIVERED");
+                Log.d(LOG_TAG_SMS, "(949) is alarm: " + sp.getBoolean("no_delivered_end_alarm", false));
                 return sp.getBoolean("no_delivered_end_alarm", false);
+            } else if (alarmType == ALARM_TYPE_BOTH) {
+                Log.d(LOG_TAG_SMS, "(943_2) alarmType == ALARM_TYPE_NO_BOTH");
+                return sp.getBoolean("no_sent_end_alarm", false) || sp.getBoolean("no_delivered_end_alarm", false);
             }
         }
 

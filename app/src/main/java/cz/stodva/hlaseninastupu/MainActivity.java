@@ -1,38 +1,46 @@
 package cz.stodva.hlaseninastupu;
 
 import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.DownloadManager;
 import android.app.PendingIntent;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.Settings;
-import android.telephony.PhoneStateListener;
-import android.telephony.ServiceState;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.facebook.stetho.Stetho;
 
+import java.io.File;
 import java.util.Calendar;
 
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
@@ -56,7 +64,12 @@ public class MainActivity extends AppCompatActivity implements
     int animShowFragment = R.anim.anim_fragment_show;
     int animHideFragment = R.anim.anim_fragment_hide;
 
+    RequestQueue queue;
+
     public FragmentManager fragmentManager;
+    public FragmentTimer fragmentTimer;
+    public FragmentMain fragmentMain;
+    public FragmentSettings fragmentSettings;
 
     int dayStart = -1;
     int monthStart = -1;
@@ -74,49 +87,59 @@ public class MainActivity extends AppCompatActivity implements
     AppSettings appSettings;
 
     TextView labelToolbar;
-    ImageView imgToolbar;
+    ImageView imgToolbar, imgCheckVersion;
 
-    // TODO následujíci dva receivery by šli sloučit
-    private BroadcastReceiver smsSentBroadcastReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver reportResultBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
+            Log.d(LOG_TAG, "(101) MainActivity - reportResultBroadcastReceiver - onReceive");
 
-            if (intent.getAction().equals(ACTION_SMS_SENT)){
-                Log.d(LOG_TAG, "ACTION_SMS_SENT");
+            Log.d(LOG_TAG, "(102) ACTION_SMS_SENT");
 
-                int messageType = intent.getIntExtra("message_type", -1);
-                int reportType = intent.getIntExtra("report_type", -1);
+            int messageType = intent.getIntExtra("message_type", -1);
+            int reportType = intent.getIntExtra("report_type", -1);
 
-                Log.d(AppConstants.LOG_TAG, "message type: " + AppUtils.messageTypeToString(messageType));
-                Log.d(AppConstants.LOG_TAG, "report type: " + AppUtils.reportTypeToString(reportType));
+            Log.d(AppConstants.LOG_TAG, "(103) message type: " + AppUtils.messageTypeToString(messageType));
+            Log.d(AppConstants.LOG_TAG, "(104) report type: " + AppUtils.reportTypeToString(reportType));
 
-                FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
-                if (fm != null) fm.updateReportInfo();
-            }
+            if (fragmentMain != null) fragmentMain.updateReportInfo();
         }
     };
 
-    private BroadcastReceiver smsDeliveredBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d(LOG_TAG, "MainActivity - broadcastReceiver - onReceive");
 
-            if (intent.getAction().equals(ACTION_SMS_DELIVERED)) {
-                Log.d(LOG_TAG, "ACTION_SMS_DELIVERED");
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
 
-                int messageType = intent.getIntExtra("message_type", -1);
-                int reportType = intent.getIntExtra("report_type", -1);
+        outState.putInt("dayStart", dayStart);
+        outState.putInt("monthStart", monthStart);
+        outState.putInt("yearStart", yearStart);
+        outState.putInt("hoursStart", hoursStart);
+        outState.putInt("minutesStart", minutesStart);
 
-                Log.d(AppConstants.LOG_TAG, "message type: " + AppUtils.messageTypeToString(messageType));
-                Log.d(AppConstants.LOG_TAG, "report type: " + AppUtils.reportTypeToString(reportType));
+        outState.putInt("dayEnd", dayEnd);
+        outState.putInt("monthEnd", monthEnd);
+        outState.putInt("yearEnd", yearEnd);
+        outState.putInt("hoursEnd", hoursEnd);
+        outState.putInt("minutesEnd", minutesEnd);
+    }
 
-                FragmentMain fm = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
-                if (fm != null) fm.updateReportInfo();
-            }
-        }
-    };
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
 
+        dayStart = savedInstanceState.getInt("dayStart");
+        monthStart = savedInstanceState.getInt("monthStart");
+        yearStart = savedInstanceState.getInt("yearStart");
+        hoursStart = savedInstanceState.getInt("hoursStart");
+        minutesStart = savedInstanceState.getInt("minutesStart");
+
+        dayEnd = savedInstanceState.getInt("dayEnd");
+        monthEnd = savedInstanceState.getInt("monthEnd");
+        yearEnd = savedInstanceState.getInt("yearEnd");
+        hoursEnd = savedInstanceState.getInt("hoursEnd");
+        minutesEnd = savedInstanceState.getInt("minutesEnd");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,11 +148,23 @@ public class MainActivity extends AppCompatActivity implements
 
         labelToolbar = findViewById(R.id.labelToolbar);
         imgToolbar = findViewById(R.id.imgToolbar);
+        imgCheckVersion = findViewById(R.id.imgCheckVersion);
 
         initStetho();
 
         fragmentManager = getSupportFragmentManager();
         fragmentManager.addOnBackStackChangedListener(this);
+
+        fragmentMain = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
+        fragmentTimer = (FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME);
+        fragmentSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
+
+        imgCheckVersion.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                checkVersion();
+            }
+        });
 
         imgToolbar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -157,13 +192,13 @@ public class MainActivity extends AppCompatActivity implements
         if (incommingIntent != null) {
             // Alarm neodeslaného (nedoručeného) hlášení
             if (incommingIntent.hasExtra("on_error")) {
-                Log.d(LOG_TAG_SMS, "MainActivity - ON_ERROR");
+                Log.d(LOG_TAG_SMS, "(109) MainActivity - ON_ERROR");
 
                 String errMsg = incommingIntent.getStringExtra("error_message");
                 int msgType = incommingIntent.getIntExtra("messageType", -1);
 
-                Log.d(LOG_TAG_SMS, "message type : " + AppUtils.messageTypeToString(msgType));
-                Log.d(LOG_TAG_SMS, "error message : " + errMsg);
+                Log.d(LOG_TAG_SMS, "(110) message type : " + AppUtils.messageTypeToString(msgType));
+                Log.d(LOG_TAG_SMS, "(111) error message : " + errMsg);
 
                 if (errMsg != null) {
                     mediaPlayer = MediaPlayer.create(this, R.raw.ha);
@@ -186,30 +221,38 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
 
-        registerReceiver(smsSentBroadcastReceiver, new IntentFilter(ACTION_SMS_SENT));
-        registerReceiver(smsDeliveredBroadcastReceiver, new IntentFilter(ACTION_SMS_DELIVERED));
+        registerReceiver(reportResultBroadcastReceiver, new IntentFilter(ACTION_REPORT_RESULT));
+
+        if (savedInstanceState == null) checkVersion();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         onBackStackChanged();
+        if (fragmentTimer != null) fragmentTimer.updateViews();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(smsSentBroadcastReceiver);
-        unregisterReceiver(smsDeliveredBroadcastReceiver);
+
+        unregisterReceiver(reportResultBroadcastReceiver);
+
+        if (queue != null) {
+            queue.cancelAll(REQUEST_QUEUE_TAG);
+        }
+
     }
 
     @Override
     public void onBackPressed() {
         if (fragmentManager.getBackStackEntryAt(fragmentManager.getBackStackEntryCount() - 1).getName().equals(FRAGMENT_SETTINGS_NAME)) {
-            FragmentSettings frSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
+            fragmentSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
 
-            if (frSettings != null) {
-                frSettings.saveData();
+            if (fragmentSettings != null) {
+                fragmentSettings.saveData();
                 super.onBackPressed();
                 return;
             }
@@ -272,14 +315,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public Fragment createFragment(String name) {
         if (name.equals(FRAGMENT_MAIN_NAME)) {
-            FragmentMain newFragment = new FragmentMain();
-            return newFragment;
+            fragmentMain = new FragmentMain();
+            return fragmentMain;
         } else if (name.equals(FRAGMENT_TIMER_NAME)) {
-            FragmentTimer newFragment = new FragmentTimer();
-            return newFragment;
+            fragmentTimer = new FragmentTimer();
+            return fragmentTimer;
         } else if (name.equals(FRAGMENT_SETTINGS_NAME)) {
-            FragmentSettings newFragment = new FragmentSettings();
-            return newFragment;
+            fragmentSettings = new FragmentSettings();
+            return fragmentSettings;
         }
 
         return null;
@@ -293,6 +336,14 @@ public class MainActivity extends AppCompatActivity implements
             this.hoursEnd = hours;
             this.minutesEnd = minutes;
         }
+    }
+
+    public boolean isStartTimeSet() {
+        return this.hoursStart > 0 && this.minutesStart > 0;
+    }
+
+    public boolean isEndTimeSet() {
+        return this.hoursEnd > 0 && this.minutesEnd > 0;
     }
 
     public void setDateData(int day, int month, int year, int messageType) {
@@ -338,7 +389,7 @@ public class MainActivity extends AppCompatActivity implements
     // Nastavení časovače pro odeslání hlášení
     public void setTimer(int messageType, int reportType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - setTimer(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(112) MainActivity - setTimer(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
@@ -367,20 +418,14 @@ public class MainActivity extends AppCompatActivity implements
         // Vynulování příznaku o úspěšném doručení hlášení
         PrefsUtils.saveIsReportDelivered(this, false, messageType, REPORT_TYPE_NEXT);
 
-        if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
-        }
-
-        if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
-            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateReportInfo();
-        }
+        if (fragmentTimer != null) fragmentTimer.updateViews();
+        if (fragmentMain != null) fragmentMain.updateReportInfo();
     }
 
     // Zrušení časovače pro odeslání hlášení
     public void cancelTimer(int messageType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimer(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(113) MainActivity - cancelTimer(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -403,20 +448,14 @@ public class MainActivity extends AppCompatActivity implements
         PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_SENT);
         PrefsUtils.setAlarm(this, false, messageType, ALARM_TYPE_NO_DELIVERED);
 
-        if (fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME) != null) {
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
-            ((FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME)).updateLayoutsVisibility();
-        }
-
-        if (fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME) != null) {
-            ((FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME)).updateReportInfo();
-        }
+        if (fragmentTimer != null) fragmentTimer.updateViews();
+        if (fragmentMain != null) fragmentMain.updateReportInfo();
     }
 
     // Nastavení časovače pro kontrolu odeslání a doručení následujícího hlášení
     public void setTimerForError(int messageType, int errorType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - setTimerForError(" + AppUtils.messageTypeToString(messageType) + ", " + AppUtils.errorTypeToString(errorType) + ")");
+        Log.d(LOG_TAG_SMS, "(114) MainActivity - setTimerForError(" + AppUtils.messageTypeToString(messageType) + ", " + AppUtils.errorTypeToString(errorType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
@@ -437,7 +476,7 @@ public class MainActivity extends AppCompatActivity implements
 
     public void cancelTimerForError(int messageType) {
 
-        Log.d(LOG_TAG_SMS, "MainActivity - cancelTimerForError(" + AppUtils.messageTypeToString(messageType) + ")");
+        Log.d(LOG_TAG_SMS, "(115) MainActivity - cancelTimerForError(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -474,7 +513,9 @@ public class MainActivity extends AppCompatActivity implements
                             showFragment(FRAGMENT_SETTINGS_NAME);
                         }
 
-                        @Override public void noSelected() {}
+                        @Override
+                        public void noSelected() {
+                        }
                     }).show();
         }
     }
@@ -541,7 +582,8 @@ public class MainActivity extends AppCompatActivity implements
                         startActivity(intent);
                     }
 
-                    @Override public void noSelected() {
+                    @Override
+                    public void noSelected() {
                         return;
                     }
                 }).show();
@@ -562,7 +604,8 @@ public class MainActivity extends AppCompatActivity implements
                                 SMS_PERMISSION_REQUEST);
                     }
 
-                    @Override public void noSelected() {
+                    @Override
+                    public void noSelected() {
                         return;
                     }
                 }).show();
@@ -586,14 +629,15 @@ public class MainActivity extends AppCompatActivity implements
                         }
                     }
 
-                    @Override public void noSelected() {
+                    @Override
+                    public void noSelected() {
                         return;
                     }
                 }).show();
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case SMS_PERMISSION_REQUEST: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -614,11 +658,166 @@ public class MainActivity extends AppCompatActivity implements
         return appSettings;
     }
 
+    public int getDayStart() {
+        return dayStart;
+    }
+
+    public int getMonthStart() {
+        return monthStart;
+    }
+
+    public int getYearStart() {
+        return yearStart;
+    }
+
+    public int getHoursStart() {
+        return hoursStart;
+    }
+
+    public int getMinutesStart() {
+        return minutesStart;
+    }
+
+    public int getDayEnd() {
+        return dayEnd;
+    }
+
+    public int getMonthEnd() {
+        return monthEnd;
+    }
+
+    public int getYearEnd() {
+        return yearEnd;
+    }
+
+    public int getHoursEnd() {
+        return hoursEnd;
+    }
+
+    public int getMinutesEnd() {
+        return minutesEnd;
+    }
+
     private void initStetho() {
         Stetho.InitializerBuilder initializerBuilder = Stetho.newInitializerBuilder(this);
         initializerBuilder.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this));
         initializerBuilder.enableDumpapp(Stetho.defaultDumperPluginsProvider(this));
         Stetho.Initializer initializer = initializerBuilder.build();
         Stetho.initialize(initializer);
+    }
+
+    public void checkVersion() {
+        Log.d("SGSGSGS", "checkVersion()");
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "http://stodva.cz/Hlaseni/index.php?version_check=1.01";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("SGSGSGS", "onResponse()");
+                        Log.d("SGSGSGS", "response: " + response);
+
+                        if (!response.equals(getAppVersion())) {
+                            Log.d("SGSGSGS", "K dispozici je novější verze aplikace.");
+
+                            DialogYesNo.createDialog(MainActivity.this)
+                                    .setTitle("Aktualizace")
+                                    .setMessage("K dispozici je aktualiuace aplikace. Stáhnout a nainstalovat novou verzi?")
+                                    .setListener(new YesNoSelectedListener() {
+                                        @Override
+                                        public void yesSelected() {
+                                            downloadApp();
+                                        }
+
+                                        @Override public void noSelected() {}
+                                    })
+                                    .show();
+                        } else {
+                            Log.d("SGSGSGS", "Je nainstalovaná poslední verze.");
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("SGSGSGS", "onErrorResponse()");
+                Log.d("SGSGSGS", "error: " + error.getMessage());
+            }
+        });
+
+        stringRequest.setTag(REQUEST_QUEUE_TAG);
+        queue.add(stringRequest);
+    }
+
+    public static void installApplication(Context context, String filePath) {
+        Log.d("SGSGSGS", "installApplication()");
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(Uri.fromFile(new File(filePath)), "application/vnd.android.package-archive");
+        //intent.setDataAndType(uriFromFile(context, new File(filePath)), "application/vnd.android.package-archive");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        try {
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            e.printStackTrace();
+            Log.e("TAG", "Error in opening the file!");
+        }
+    }
+
+    /*
+    private static Uri uriFromFile(Context context, File file) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+        } else {
+            return Uri.fromFile(file);
+        }
+    }
+    */
+
+    public void downloadApp() {
+        Log.d("SGSGSGS", "installApplication()");
+
+        String fileName = "apk_hlaseni.apk";
+        final String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + fileName;
+        final Uri uri = Uri.parse("file://" + destination);
+
+        File file = new File(destination);
+        if (file.exists()) file.delete();
+
+        String url = "http://stodva.cz/Hlaseni/app.apk";
+
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        request.setDescription("description");
+        request.setTitle("title");
+        request.setDestinationUri(uri);
+
+        final DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        final long downloadId = manager.enqueue(request);
+
+        BroadcastReceiver onComplete = new BroadcastReceiver() {
+            public void onReceive(Context ctxt, Intent intent) {
+                installApplication(MainActivity.this, destination);
+                unregisterReceiver(this);
+                finish();
+            }
+        };
+
+        registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+    }
+
+    public String getAppVersion() {
+        Log.d("SGSGSGS", "getAppVersion()");
+
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            Log.d("SGSGSGS", "version: " + pInfo.versionName);
+            return pInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

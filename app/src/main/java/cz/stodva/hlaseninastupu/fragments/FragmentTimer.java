@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
@@ -79,16 +80,12 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("d.M. yyyy");
         Calendar calendar = Calendar.getInstance();
 
         activity.setDateData(calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR), MESSAGE_TYPE_START);
         activity.setDateData(calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR), AppConstants.MESSAGE_TYPE_END);
 
-        labelDateStart.setText(sdf.format(calendar.getTimeInMillis()));
-        labelDateEnd.setText(sdf.format(calendar.getTimeInMillis()));
-
-        updateLayoutsVisibility();
+        updateViews();
 
         labelDateStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -129,7 +126,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                     @Override
                     public void onTimeSelected(int hours, int minutes) {
                         activity.setTimeData(hours, minutes, MESSAGE_TYPE_START);
-                        labelTimeStart.setText("" + hours + ":" + addZero(minutes));
+                        labelTimeStart.setText("" + addZero(hours) + ":" + addZero(minutes));
+                        btnOkStart.setVisibility(activity.isStartTimeSet() ? View.VISIBLE : View.GONE);
                         Animators.animateButton(btnOkStart);
                     }
                 });
@@ -146,7 +144,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                     @Override
                     public void onTimeSelected(int hours, int minutes) {
                         activity.setTimeData(hours, minutes, MESSAGE_TYPE_END);
-                        labelTimeEnd.setText("" + hours + ":" + addZero(minutes));
+                        labelTimeEnd.setText("" + addZero(hours) + ":" + addZero(minutes));
+                        btnOkEnd.setVisibility(activity.isEndTimeSet() ? View.VISIBLE : View.GONE);
                         Animators.animateButton(btnOkEnd);
                     }
                 });
@@ -161,8 +160,10 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
             public void onClick(View v) {
                 Animators.animateButtonClick(btnOkStart, true);
 
-                if (activity.checkTimeInput(MESSAGE_TYPE_START))
+                if (activity.checkTimeInput(MESSAGE_TYPE_START)) {
                     activity.setTimer(MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
+                    PrefsUtils.setAlarm(activity, false, MESSAGE_TYPE_START, ALARM_TYPE_BOTH);
+                }
             }
         });
 
@@ -171,8 +172,10 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
             public void onClick(View v) {
                 Animators.animateButtonClick(btnOkEnd, true);
 
-                if (activity.checkTimeInput(MESSAGE_TYPE_END))
+                if (activity.checkTimeInput(MESSAGE_TYPE_END)) {
                     activity.setTimer(MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
+                    PrefsUtils.setAlarm(activity, false, MESSAGE_TYPE_END, ALARM_TYPE_BOTH);
+                }
             }
         });
 
@@ -191,16 +194,78 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
         });
     }
 
-    public void updateLayoutsVisibility() {
-        SimpleDateFormat sdf = new SimpleDateFormat("d.MM. yyyy  k:mm");
-        long nextTimerStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST);
-        long nextTimerEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST);
+    public void updateViews() {
+        Calendar calendarStart = Calendar.getInstance();
+        Calendar calendarEnd = Calendar.getInstance();
+
+        if (activity.isStartTimeSet()) {
+            labelTimeStart.setText("" + addZero(activity.getHoursStart()) + ":" + addZero(activity.getMinutesStart()));
+            btnOkStart.setVisibility(View.VISIBLE);
+
+            calendarStart.set(
+                    activity.getYearStart(),
+                    activity.getMonthStart(),
+                    activity.getDayStart(),
+                    activity.getHoursStart(),
+                    activity.getMinutesStart());
+        } else {
+            labelTimeStart.setText("Nastavit čas");
+            btnOkStart.setVisibility(View.GONE);
+        }
+
+        if (activity.isEndTimeSet()) {
+            labelTimeEnd.setText("" + addZero(activity.getHoursEnd()) + ":" + addZero(activity.getMinutesEnd()));
+            btnOkEnd.setVisibility(View.VISIBLE);
+
+            calendarEnd.set(
+                    activity.getYearEnd(),
+                    activity.getMonthEnd(),
+                    activity.getDayEnd(),
+                    activity.getHoursEnd(),
+                    activity.getMinutesEnd());
+        } else {
+            labelTimeEnd.setText("Nastavit čas");
+            btnOkEnd.setVisibility(View.GONE);
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  k:mm");
+        SimpleDateFormat sdfDate = new SimpleDateFormat("d.M. yyyy");
+
+        long nextTimerStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
+        long nextTimerEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
+
+        labelDateStart.setText(sdfDate.format(calendarStart.getTimeInMillis()));
+        labelDateEnd.setText(sdfDate.format(calendarEnd.getTimeInMillis()));
 
         labelNextTimerStart.setText(sdf.format(nextTimerStart));
         labelNextTimerEnd.setText(sdf.format(nextTimerEnd));
 
         showStartLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START));
         showEndLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END));
+
+        chbNoSentStart.setChecked(PrefsUtils.isAlarm(activity, MESSAGE_TYPE_START, ALARM_TYPE_BOTH));
+        chbNoSentEnd.setChecked(PrefsUtils.isAlarm(activity, MESSAGE_TYPE_END, ALARM_TYPE_BOTH));
+
+        btnOkStart.setVisibility(activity.isStartTimeSet() ? View.VISIBLE : View.GONE);
+        btnOkEnd.setVisibility(activity.isEndTimeSet() ? View.VISIBLE : View.GONE);
+
+        /*
+        if (activity.isStartTimeSet()) {
+            labelTimeStart.setText("" + addZero(activity.getHoursStart()) + ":" + addZero(activity.getMinutesStart()));
+            btnOkStart.setVisibility(View.VISIBLE);
+        } else {
+            labelTimeStart.setText("Nastavit čas");
+            btnOkStart.setVisibility(View.GONE);
+        }
+
+        if (activity.isEndTimeSet()) {
+            labelTimeEnd.setText("" + addZero(activity.getHoursEnd()) + ":" + addZero(activity.getMinutesEnd()));
+            btnOkEnd.setVisibility(View.VISIBLE);
+        } else {
+            labelTimeEnd.setText("Nastavit čas");
+            btnOkEnd.setVisibility(View.GONE);
+        }
+        */
     }
 
     public String addZero(int minutes) {

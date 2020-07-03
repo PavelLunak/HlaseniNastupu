@@ -2,6 +2,8 @@ package cz.stodva.hlaseninastupu.utils;
 
 public interface AppConstants {
 
+    String REQUEST_QUEUE_TAG = "HlaseniApp";
+
     String LOG_TAG = "log_tag";
     String LOG_TAG_SMS = "log_tag_sms";
 
@@ -35,6 +37,7 @@ public interface AppConstants {
 
     int ALARM_TYPE_NO_SENT = 1;
     int ALARM_TYPE_NO_DELIVERED = 2;
+    int ALARM_TYPE_BOTH = 3;
 
     int ERROR_TYPE_NO_SENT = 1;
     int ERROR_TYPE_NO_DELIVERED = 2;
@@ -45,4 +48,5 @@ public interface AppConstants {
 
     String ACTION_SMS_SENT = "action_sms_sent";
     String ACTION_SMS_DELIVERED = "action_sms_delivered";
+    String ACTION_REPORT_RESULT = "action_report_result";
 }

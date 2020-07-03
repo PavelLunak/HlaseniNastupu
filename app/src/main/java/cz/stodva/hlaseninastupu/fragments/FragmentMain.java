@@ -125,12 +125,12 @@ public class FragmentMain extends Fragment implements AppConstants {
     private void requestSendReport(final int messageType) {
         if (messageType == MESSAGE_TYPE_START) {
             if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START)) {
-                Toast.makeText(activity, "Nelze odesílat hlášení nástupu při nastaveném budíku na automatické hlášení nástupu", Toast.LENGTH_LONG).show();
+                DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Nelze odesílat hlášení nástupu při nastaveném budíku na automatické hlášení nástupu").show();
                 return;
             }
         } else if (messageType ==MESSAGE_TYPE_END) {
             if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END)) {
-                Toast.makeText(activity, "Nelze odesílat hlášení konce při nastaveném budíku na automatické hlášení konce", Toast.LENGTH_LONG).show();
+                DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Nelze odesílat hlášení konce při nastaveném budíku na automatické hlášení konce").show();
                 return;
             }
         }
@@ -139,7 +139,7 @@ public class FragmentMain extends Fragment implements AppConstants {
         final String text = activity.getMessage(messageType);
 
         if (text == null) {
-            Toast.makeText(activity, "Není nastaven text hlášení!", Toast.LENGTH_LONG).show();
+            DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Není nastaven text hlášení! Nastav v nastavení aplikace.").show();
             return;
         }
 
@@ -198,7 +198,7 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     public void updateReportInfo() {
-        Log.d(LOG_TAG, "FragmentMain - updateReportInfo()");
+        Log.d(LOG_TAG, "(1001) FragmentMain - updateReportInfo()");
 
         SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy k:mm");
 
@@ -208,11 +208,19 @@ public class FragmentMain extends Fragment implements AppConstants {
         long nextStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
         long nextEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
 
-        if (lastStart > -1) labelLastTimerStart.setText(sdf.format(lastStart));
-        else labelLastTimerStart.setText("Není nastaveno");
+        if (lastStart > -1) {
+            labelLastTimerStart.setText(sdf.format(lastStart));
+        } else {
+            labelLastTimerStart.setText("Nebylo zatím nastaveno");
+            showWarn(MESSAGE_TYPE_START, false);
+        }
 
-        if (lastEnd > -1) labelLastTimerEnd.setText(sdf.format(lastEnd));
-        else labelLastTimerEnd.setText("Není nastaveno");
+        if (lastEnd > -1) {
+            labelLastTimerEnd.setText(sdf.format(lastEnd));
+        } else {
+            labelLastTimerEnd.setText("Nebylo zatím nastaveno");
+            showWarn(MESSAGE_TYPE_END, false);
+        }
 
         if (nextStart > -1) labelNextTimerStart.setText(sdf.format(nextStart));
         else labelNextTimerStart.setText("Není nastaveno");
@@ -245,7 +253,7 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     public void showWarn(int messageType, boolean show) {
-        Log.d(LOG_TAG, "FragmentMain - showWarn()");
+        Log.d(LOG_TAG, "(1002) FragmentMain - showWarn()");
 
         if (messageType == MESSAGE_TYPE_START) {
             imgStartWarn.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -258,14 +266,14 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     public void initPhoneStateListener(final String phone, final String text, final int messageType) {
-        Log.d(LOG_TAG_SMS, "FragmentMain - initPhoneStateListener()");
+        Log.d(LOG_TAG_SMS, "(1003) FragmentMain - initPhoneStateListener()");
         if (telephonyManager == null) {
-            Log.d(LOG_TAG_SMS, "telephonyManager == null -> new init");
+            Log.d(LOG_TAG_SMS, "(1004) telephonyManager == null -> new init");
             telephonyManager = (TelephonyManager) activity.getSystemService(Context.TELEPHONY_SERVICE);
         }
 
         if (phoneStateListener == null) {
-            Log.d(LOG_TAG_SMS, "phoneStateListener == null -> new init");
+            Log.d(LOG_TAG_SMS, "(1005) phoneStateListener == null -> new init");
 
             phoneStateListener = new PhoneStateListener() {
                 @Override
@@ -274,23 +282,23 @@ public class FragmentMain extends Fragment implements AppConstants {
 
                     switch (serviceState.getState()) {
                         case ServiceState.STATE_IN_SERVICE:
-                            Log.d(LOG_TAG_SMS, "FragmentMain - onServiceStateChanged: STATE_IN_SERVICE");
+                            Log.d(LOG_TAG_SMS, "(1006) FragmentMain - onServiceStateChanged: STATE_IN_SERVICE");
                             sendSms(phone, text, messageType);
                             break;
                         case ServiceState.STATE_OUT_OF_SERVICE:
-                            Log.d(LOG_TAG_SMS, "FragmentMain - onServiceStateChanged: STATE_OUT_OF_SERVICE: ");
+                            Log.d(LOG_TAG_SMS, "(1007) FragmentMain - onServiceStateChanged: STATE_OUT_OF_SERVICE: ");
                             showPhoneStateError("HLÁŠENÍ NELZE ODESLAT - není dostupná síť");
                             break;
                         case ServiceState.STATE_EMERGENCY_ONLY:
-                            Log.d(LOG_TAG_SMS, "FragmentMain - onServiceStateChanged: STATE_EMERGENCY_ONLY");
+                            Log.d(LOG_TAG_SMS, "(1008) FragmentMain - onServiceStateChanged: STATE_EMERGENCY_ONLY");
                             showPhoneStateError("HLÁŠENÍ NELZE ODESLAT - je povoleno pouze tísňové volání");
                             break;
                         case ServiceState.STATE_POWER_OFF:
-                            Log.d(LOG_TAG_SMS, "FragmentMain - onServiceStateChanged: STATE_POWER_OFF");
+                            Log.d(LOG_TAG_SMS, "(1009) FragmentMain - onServiceStateChanged: STATE_POWER_OFF");
                             showPhoneStateError("HLÁŠENÍ NELZE ODESLAT - je zapnut režim letadlo");
                             break;
                         default:
-                            Log.d(LOG_TAG_SMS, "FragmentMain - onServiceStateChanged: UNKNOWN_STATE");
+                            Log.d(LOG_TAG_SMS, "(1010) FragmentMain - onServiceStateChanged: UNKNOWN_STATE");
                             showPhoneStateError("HLÁŠENÍ NELZE ODESLAT - neznámý důvod nedostupnosti sítě");
                             break;
                     }
@@ -304,7 +312,7 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     public void cancelPhoneStateListener() {
-        Log.d(LOG_TAG_SMS, "FragmentMain - cancelPhoneStateListener()");
+        Log.d(LOG_TAG_SMS, "(1011) FragmentMain - cancelPhoneStateListener()");
 
         telephonyManager = (TelephonyManager) activity.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);

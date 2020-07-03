@@ -22,7 +22,7 @@ import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 public class FragmentSettings extends Fragment implements AppConstants {
 
     EditText etSap, etPhone, etMessageStart, etMessageEnd;
-    TextView labelInvalidPhone, labelWarning;
+    TextView labelInvalidPhone, labelWarning, labelVersion;
 
     MainActivity activity;
 
@@ -55,6 +55,7 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
         labelInvalidPhone = view.findViewById(R.id.labelInvalidPhone);
         labelWarning = view.findViewById(R.id.labelWarning);
+        labelVersion = view.findViewById(R.id.labelVersion);
 
         return view;
     }
@@ -74,6 +75,7 @@ public class FragmentSettings extends Fragment implements AppConstants {
         etMessageStart.addTextChangedListener(textWatcher);
         etMessageEnd.addTextChangedListener(textWatcher);
 
+        labelVersion.setText("Verze: " + activity.getAppVersion());
         checkData();
     }
 
