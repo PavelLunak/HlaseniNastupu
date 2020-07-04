@@ -19,6 +19,33 @@ public class PrefsUtils implements AppConstants {
         return sdf.format(time);
     }
 
+    public static void saveAppSettings(Context context, String sap, String phone, String contactName, String startString, String endString) {
+        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+
+        editor.putString("settings_sap", sap);
+        editor.putString("settings_phone", phone);
+        editor.putString("settings_contact_name", contactName);
+        editor.putString("settings_start_text", startString);
+        editor.putString("settings_end_text", endString);
+
+        editor.commit();
+    }
+
+    public static AppSettings getAppSettings(Context context) {
+        AppSettings appSettings = new AppSettings();
+
+        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
+
+        appSettings.setSap(sp.getString("settings_sap", ""));
+        appSettings.setPhoneNumber(sp.getString("settings_phone", PHONE_NUMBER));
+        appSettings.setContactName(sp.getString("settings_contact_name", ""));
+        appSettings.setStartMessage(sp.getString("settings_start_text", ""));
+        appSettings.setEndMessage(sp.getString("settings_end_text", ""));
+
+        return appSettings;
+    }
+
     public static void setIsTimer(Context context, int messageType, boolean isSet) {
         Log.d(LOG_TAG_SMS, "(901) PrefsUtils - setIsTimer(" + AppUtils.messageTypeToString(messageType) + ", is set: " + isSet + ")");
 
@@ -106,31 +133,6 @@ public class PrefsUtils implements AppConstants {
                 return sp.getLong("last_report_end", -1);
             }
         }
-    }
-
-    public static void saveAppSettings(Context context, String sap, String phone, String startString, String endString) {
-        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
-
-        editor.putString("settings_sap", sap);
-        editor.putString("settings_phone", phone);
-        editor.putString("settings_start_text", startString);
-        editor.putString("settings_end_text", endString);
-
-        editor.commit();
-    }
-
-    public static AppSettings getAppSettings(Context context) {
-        AppSettings appSettings = new AppSettings();
-
-        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
-
-        appSettings.setSap(sp.getString("settings_sap", ""));
-        appSettings.setPhoneNumber(sp.getString("settings_phone", PHONE_NUMBER));
-        appSettings.setStartMessage(sp.getString("settings_start_text", ""));
-        appSettings.setEndMessage(sp.getString("settings_end_text", ""));
-
-        return appSettings;
     }
 
     // ---------- PŘÍZNAK ODESLÁNÍ HLÁŠENÍ ---------------------------------------------------------
@@ -264,16 +266,30 @@ public class PrefsUtils implements AppConstants {
 
     // ---------- PŘÍZNAK DEFINITIVNÍHO ODMÍTNUTÍ OPRÁVNĚNÍ ----------------------------------------
 
-    public static void setDefinitiveRejection(Context context, boolean isDenied) {
+    public static void setDefinitiveRejection(Context context, int permissionType, boolean isDenied) {
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
-        editor.putBoolean("definitive_rejection", isDenied);
+
+        if (permissionType == PERMISSION_SMS) editor.putBoolean("definitive_rejection_sms", isDenied);
+        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE) editor.putBoolean("definitive_rejection_write_external_storage", isDenied);
+        if (permissionType == PERMISSION_READ_CONTACTS) editor.putBoolean("definitive_rejection_read_contacts", isDenied);
+
         editor.commit();
     }
 
-    public static boolean isDefinitiveRejection(Context context) {
+    public static boolean isDefinitiveRejection(Context context, int permissionType) {
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
-        return sp.getBoolean("definitive_rejection", false);
+
+        if (permissionType == PERMISSION_SMS)
+            return sp.getBoolean("definitive_rejection_sms", false);
+
+        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE)
+            return sp.getBoolean("definitive_rejection_write_external_storage", false);
+
+        if (permissionType == PERMISSION_READ_CONTACTS)
+            return sp.getBoolean("definitive_rejection_read_contacts", false);
+
+        return false;
     }
 
     // ---------- PŘÍZNAK O NASTAVENÍ ALARMU NEODESLÁNÍ NEBO NEDORUČENÍ HLÁŠENÍ --------------------

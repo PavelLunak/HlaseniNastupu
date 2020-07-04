@@ -2,10 +2,16 @@ package cz.stodva.hlaseninastupu.utils;
 
 public interface AppConstants {
 
-    String REQUEST_QUEUE_TAG = "HlaseniApp";
-
     String LOG_TAG = "log_tag";
     String LOG_TAG_SMS = "log_tag_sms";
+
+    String REQUEST_QUEUE_TAG = "HlaseniApp";
+
+    int REQUEST_SELECT_CONTACT = 1;
+
+    int PERMISSION_SMS = 1;
+    int PERMISSION_WRITE_EXTERNAL_STORAGE = 2;
+    int PERMISSION_READ_CONTACTS = 3;
 
     String MESSAGE_STRAT = "NASTUP";
     String MESSAGE_END = "KONEC";
@@ -43,6 +49,8 @@ public interface AppConstants {
     int ERROR_TYPE_NO_DELIVERED = 2;
 
     int SMS_PERMISSION_REQUEST = 1;
+    int WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST = 2;
+    int READ_CONTACTS_PERMISSION_REQUEST = 3;
 
     int PREFS_DELETE_KEY = -123;    //Příznak, že danou hodnotu v prefs chci odstranit
 

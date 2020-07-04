@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,13 +17,15 @@ import androidx.fragment.app.Fragment;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
+import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 public class FragmentSettings extends Fragment implements AppConstants {
 
     EditText etSap, etPhone, etMessageStart, etMessageEnd;
-    TextView labelInvalidPhone, labelWarning, labelVersion;
+    TextView labelInvalidPhone, labelWarning, labelVersion, labelContactName;
+    ImageView imgPerson;
 
     MainActivity activity;
 
@@ -56,6 +59,9 @@ public class FragmentSettings extends Fragment implements AppConstants {
         labelInvalidPhone = view.findViewById(R.id.labelInvalidPhone);
         labelWarning = view.findViewById(R.id.labelWarning);
         labelVersion = view.findViewById(R.id.labelVersion);
+        labelContactName = view.findViewById(R.id.labelContactName);
+
+        imgPerson = view.findViewById(R.id.imgPerson);
 
         return view;
     }
@@ -76,6 +82,18 @@ public class FragmentSettings extends Fragment implements AppConstants {
         etMessageEnd.addTextChangedListener(textWatcher);
 
         labelVersion.setText("Verze: " + activity.getAppVersion());
+        labelContactName.setText(activity.getAppSettings().getContactName());
+
+        imgPerson.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgPerson, true);
+                if (activity.checkReadContactsPermissionGranted()) {
+                    activity.selectContact();
+                }
+            }
+        });
+
         checkData();
     }
 
@@ -114,6 +132,17 @@ public class FragmentSettings extends Fragment implements AppConstants {
         String phone = checkInput(etPhone);
         String startMsg = checkInput(etMessageStart);
         String endMsg = checkInput(etMessageEnd);
+        String contactName;
+
+        if (labelContactName.getText() != null) {
+            if (labelContactName.getText().toString() != null) {
+                contactName = labelContactName.getText().toString();
+            } else {
+                contactName = "";
+            }
+        } else {
+            contactName = "";
+        }
 
         if (phone.equals("")) {
             phone = PHONE_NUMBER;
@@ -130,6 +159,7 @@ public class FragmentSettings extends Fragment implements AppConstants {
                 activity,
                 sap,
                 phone,
+                contactName,
                 startMsg,
                 endMsg);
     }
@@ -171,5 +201,10 @@ public class FragmentSettings extends Fragment implements AppConstants {
         +420-123-456-789, +420 123 456 789, +420-123-456 789
         00420123456789, 00420-123-456-789, 00420 123 456 789, 00420-123 456-789
         */
+    }
+
+    public void setContact(String phone, String name) {
+        etPhone.setText(phone);
+        labelContactName.setText(name);
     }
 }

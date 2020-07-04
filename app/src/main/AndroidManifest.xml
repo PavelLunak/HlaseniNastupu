@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
 
     <application
@@ -28,6 +29,17 @@
         <receiver android:name=".receivers.TimerReceiver"></receiver>
         <receiver android:name=".receivers.MessageSentReceiver"></receiver>
         <receiver android:name=".receivers.MessageDeliveredReceiver"></receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="cz.stodva.hlaseninastupu.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
 
     </application>
 

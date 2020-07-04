@@ -6,6 +6,11 @@
     <string name="yes">Ano</string>
     <string name="no">Ne</string>
     <string name="permission_already_granted">Oprávnění je již uděleno!</string>
-    <string name="permission_explanation">Předchozí žádost o udělení oprávnění byla zamítnuta, proto právě zobrazuji podrobnější vysvětlení, proč aplikace toto oprávnění požaduje... Zobrazit žádost systému o udělení oprávnění?</string>
+    <string name="permission_explanation_sms">Předchozí žádost o udělení oprávnění k odesílání SMS byla zamítnuta... Zobrazit žádost systému o udělení oprávnění?</string>
+    <string name="permission_explanation_write_external_storage">Předchozí žádost o udělení oprávnění k zápisu do úložiště zařízení byla zamítnuta... Zobrazit žádost systému o udělení oprávnění?</string>
+    <string name="permission_explanation_read_contacts_storage">Předchozí žádost o udělení oprávnění ke čtení kontaktů byla zamítnuta... Zobrazit žádost systému o udělení oprávnění?</string>
+    <string name="permission_storage_info">Pro možnost stahování a instalaci aktualizací aplikace je nutné aplikaci udělit oprávnění k zápisu do úložiště zařízení. Pokračovat k udělení oprávnění?</string>
+    <string name="permission_sms_info">Pro odesílání SMS bude nutné této aplikaci udělit oprávnění. Pokračovat k udělení oprávnění?</string>
+    <string name="permission_read_contacts_info">Pro možnost výběru kontaktu z telefonu je nutné aplikaci udělit oprávnění ke čtení kontaktů telefonu. Pokračovat k udělení oprávnění?</string>
     <string name="request_permission">Vyžádání oprávnění</string>
 </resources>

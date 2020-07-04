@@ -149,6 +149,9 @@ public class FragmentMain extends Fragment implements AppConstants {
                 .setTitle(messageType == MESSAGE_TYPE_START ? "Nástup" : "Konec")
                 .setMessage("Odeslat na tel. číslo " +
                         activity.getPhoneNumber() +
+                        " (" +
+                        activity.getAppSettings().getContactName() +
+                        ")" +
                         " hlášení " +
                         (messageType == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"))
                 .setListener(new YesNoSelectedListener() {
@@ -210,6 +213,11 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         if (lastStart > -1) {
             labelLastTimerStart.setText(sdf.format(lastStart));
+
+            showWarn(
+                    MESSAGE_TYPE_START,
+                    !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST)
+                            || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST));
         } else {
             labelLastTimerStart.setText("Nebylo zatím nastaveno");
             showWarn(MESSAGE_TYPE_START, false);
@@ -217,6 +225,11 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         if (lastEnd > -1) {
             labelLastTimerEnd.setText(sdf.format(lastEnd));
+
+            showWarn(
+                    MESSAGE_TYPE_END,
+                    !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)
+                            || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST));
         } else {
             labelLastTimerEnd.setText("Nebylo zatím nastaveno");
             showWarn(MESSAGE_TYPE_END, false);
@@ -240,16 +253,6 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         if (PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) imgLastDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
         else imgLastDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-
-        showWarn(
-                MESSAGE_TYPE_START,
-                !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST)
-                        || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST));
-
-        showWarn(
-                MESSAGE_TYPE_END,
-                !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)
-                        || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST));
     }
 
     public void showWarn(int messageType, boolean show) {

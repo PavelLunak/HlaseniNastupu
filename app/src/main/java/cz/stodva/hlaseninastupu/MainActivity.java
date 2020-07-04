@@ -2,6 +2,7 @@ package cz.stodva.hlaseninastupu;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
@@ -15,16 +16,19 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -87,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements
     AppSettings appSettings;
 
     TextView labelToolbar;
-    ImageView imgToolbar, imgCheckVersion;
+    ImageView imgToolbar;
 
     private BroadcastReceiver reportResultBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -148,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements
 
         labelToolbar = findViewById(R.id.labelToolbar);
         imgToolbar = findViewById(R.id.imgToolbar);
-        imgCheckVersion = findViewById(R.id.imgCheckVersion);
 
         initStetho();
 
@@ -158,13 +161,6 @@ public class MainActivity extends AppCompatActivity implements
         fragmentMain = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
         fragmentTimer = (FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME);
         fragmentSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
-
-        imgCheckVersion.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                checkVersion();
-            }
-        });
 
         imgToolbar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -223,7 +219,11 @@ public class MainActivity extends AppCompatActivity implements
 
         registerReceiver(reportResultBroadcastReceiver, new IntentFilter(ACTION_REPORT_RESULT));
 
-        if (savedInstanceState == null) checkVersion();
+        if (savedInstanceState == null) {
+            if (checkWriteStoragePermissionGranted()) {
+                checkVersion();
+            }
+        }
     }
 
     @Override
@@ -548,22 +548,72 @@ public class MainActivity extends AppCompatActivity implements
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
 
         // Bylo již udělení oprávnění definitivně odepřeno?
-        if (PrefsUtils.isDefinitiveRejection(this)) {
+        if (PrefsUtils.isDefinitiveRejection(this, PERMISSION_SMS)) {
             showDialogSettings();
             return false;
         }
 
         if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
             // Udělení oprávnění uděleno již dříve
-            Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
             return true;
         } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
             // Udělení oprávnění již bylo odmítnuto (nezaškrtnuto políčko "Příště se neptat")
-            showDialogExplanation();
+            showDialogExplanation(PERMISSION_SMS);
             return false;
         } else {
             // Zobrazení informačního doalogu před zobrazením systémové žádosti
-            showDialogInfo(Manifest.permission.SEND_SMS, "Pro odesílání SMS bude nutné této aplikaci udělit oprávnění. Pokračovat k udělení oprávnění?");
+            showDialogInfo(Manifest.permission.SEND_SMS, getString(R.string.permission_sms_info));
+            return false;
+        }
+    }
+
+    public boolean checkWriteStoragePermissionGranted() {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
+
+        // Bylo již udělení oprávnění definitivně odepřeno?
+        if (PrefsUtils.isDefinitiveRejection(this, PERMISSION_WRITE_EXTERNAL_STORAGE)) {
+            showDialogSettings();
+            return false;
+        }
+
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            // Udělení oprávnění uděleno již dříve
+            //Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            // Udělení oprávnění již bylo odmítnuto (nezaškrtnuto políčko "Příště se neptat")
+            showDialogExplanation(PERMISSION_WRITE_EXTERNAL_STORAGE);
+            return false;
+        } else {
+            // Zobrazení informačního doalogu před zobrazením systémové žádosti
+            showDialogInfo(Manifest.permission.WRITE_EXTERNAL_STORAGE, getString(R.string.permission_storage_info));
+            return false;
+        }
+    }
+
+    public boolean checkReadContactsPermissionGranted() {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
+
+        // Bylo již udělení oprávnění definitivně odepřeno?
+        if (PrefsUtils.isDefinitiveRejection(this, PERMISSION_READ_CONTACTS)) {
+            showDialogSettings();
+            return false;
+        }
+
+        if (checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            // Udělení oprávnění uděleno již dříve
+            //Toast.makeText(this, R.string.permission_already_granted, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_CONTACTS)) {
+            // Udělení oprávnění již bylo odmítnuto (nezaškrtnuto políčko "Příště se neptat")
+            showDialogExplanation(PERMISSION_READ_CONTACTS);
+            return false;
+        } else {
+            // Zobrazení informačního doalogu před zobrazením systémové žádosti
+            showDialogInfo(Manifest.permission.READ_CONTACTS, getString(R.string.permission_read_contacts_info));
             return false;
         }
     }
@@ -591,17 +641,39 @@ public class MainActivity extends AppCompatActivity implements
 
     // Zobrazení dialogového okna s vysvětlením důvodu potřeby udělení oprávnění před zobrazením
     // systémového dialogového okna s žádostí a s možností zaškrtnutí políčka "Příště se neptat".
-    public void showDialogExplanation() {
+    public void showDialogExplanation(final int permissionType) {
+        String message = "";
+
+        if (permissionType == PERMISSION_SMS) message = getResources().getString(R.string.permission_explanation_sms);
+        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE) message = getResources().getString(R.string.permission_explanation_write_external_storage);
+        if (permissionType == PERMISSION_READ_CONTACTS) message = getResources().getString(R.string.permission_explanation_read_contacts_storage);
+
         DialogYesNo.createDialog(this)
-                .setTitle("SMS")
-                .setMessage(getResources().getString(R.string.permission_explanation))
+                .setTitle("Vysvětlení")
+                .setMessage(message)
                 .setListener(new YesNoSelectedListener() {
                     @Override
                     public void yesSelected() {
-                        ActivityCompat.requestPermissions(
-                                MainActivity.this,
-                                new String[]{Manifest.permission.SEND_SMS},
-                                SMS_PERMISSION_REQUEST);
+                        if (permissionType == PERMISSION_SMS) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.SEND_SMS},
+                                    SMS_PERMISSION_REQUEST);
+                        }
+
+                        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST);
+                        }
+
+                        if (permissionType == PERMISSION_READ_CONTACTS) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.READ_CONTACTS},
+                                    READ_CONTACTS_PERMISSION_REQUEST);
+                        }
                     }
 
                     @Override
@@ -619,13 +691,24 @@ public class MainActivity extends AppCompatActivity implements
                     @Override
                     public void yesSelected() {
                         if (permission.equals(Manifest.permission.SEND_SMS)) {
-
                             ActivityCompat.requestPermissions(
                                     MainActivity.this,
                                     new String[]{Manifest.permission.SEND_SMS},
                                     SMS_PERMISSION_REQUEST);
-                        } else {
-                            // ... jiné postupy dle typu oprávnění
+                        }
+
+                        if (permission.equals(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST);
+                        }
+
+                        if (permission.equals(Manifest.permission.READ_CONTACTS)) {
+                            ActivityCompat.requestPermissions(
+                                    MainActivity.this,
+                                    new String[]{Manifest.permission.READ_CONTACTS},
+                                    READ_CONTACTS_PERMISSION_REQUEST);
                         }
                     }
 
@@ -639,16 +722,36 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
-            case SMS_PERMISSION_REQUEST: {
+            case SMS_PERMISSION_REQUEST:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+                } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS)) {
                     //Vždy když uživatel odmítne udělit oprávnění a NEZAŠKRTNE políčko "Příště se neptat"
                 } else {
                     //Uživatel OPAKOVANĚ odmítl udělit oprávnění a zaškrtl políčko "Příště se neptat"
-                    PrefsUtils.setDefinitiveRejection(MainActivity.this, true);
+                    PrefsUtils.setDefinitiveRejection(MainActivity.this, PERMISSION_SMS, true);
                 }
-            }
+                break;
+            case WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    checkVersion();
+                } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    //Vždy když uživatel odmítne udělit oprávnění a NEZAŠKRTNE políčko "Příště se neptat"
+                } else {
+                    //Uživatel OPAKOVANĚ odmítl udělit oprávnění a zaškrtl políčko "Příště se neptat"
+                    PrefsUtils.setDefinitiveRejection(MainActivity.this, PERMISSION_WRITE_EXTERNAL_STORAGE, true);
+                }
+                break;
+            case READ_CONTACTS_PERMISSION_REQUEST:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                } else if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_CONTACTS)) {
+                    //Vždy když uživatel odmítne udělit oprávnění a NEZAŠKRTNE políčko "Příště se neptat"
+                } else {
+                    //Uživatel OPAKOVANĚ odmítl udělit oprávnění a zaškrtl políčko "Příště se neptat"
+                    PrefsUtils.setDefinitiveRejection(MainActivity.this, PERMISSION_READ_CONTACTS, true);
+                }
+                break;
         }
 
     }
@@ -754,10 +857,10 @@ public class MainActivity extends AppCompatActivity implements
         Log.d("SGSGSGS", "installApplication()");
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(Uri.fromFile(new File(filePath)), "application/vnd.android.package-archive");
-        //intent.setDataAndType(uriFromFile(context, new File(filePath)), "application/vnd.android.package-archive");
+        //intent.setDataAndType(Uri.fromFile(new File(filePath)), "application/vnd.android.package-archive");
+        intent.setDataAndType(uriFromFile(context, new File(filePath)), "application/vnd.android.package-archive");
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
         try {
             context.startActivity(intent);
@@ -767,21 +870,19 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    /*
     private static Uri uriFromFile(Context context, File file) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            return FileProvider.getUriForFile(context, "cz.stodva.hlaseninastupu.fileprovider", file);
         } else {
             return Uri.fromFile(file);
         }
     }
-    */
 
     public void downloadApp() {
-        Log.d("SGSGSGS", "installApplication()");
+        Log.d("SGSGSGS", "downloadApp()");
 
-        String fileName = "apk_hlaseni.apk";
-        final String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + fileName;
+        String fileName = "hlaseni_app.apk";
+        final String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + File.separator + fileName;
         final Uri uri = Uri.parse("file://" + destination);
 
         File file = new File(destination);
@@ -818,6 +919,45 @@ public class MainActivity extends AppCompatActivity implements
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public void selectContact() {
+        Intent pickContact = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+        pickContact.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+        startActivityForResult(pickContact, REQUEST_SELECT_CONTACT);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            Uri uri = data.getData();
+            Cursor cursor;
+            ContentResolver cr = getContentResolver();
+
+            try {
+                Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+                if (null != cur && cur.getCount() > 0) {
+                    cur.moveToFirst();
+                }
+
+                if (cur.getCount() > 0) {
+                    cursor = getContentResolver().query(uri, null, null, null, null);
+                    if (null != cursor && cursor.getCount() > 0) {
+                        cursor.moveToFirst();
+                        String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                        String phoneNo = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+
+                        if (fragmentSettings != null) {
+                            fragmentSettings.setContact(phoneNo, name);
+                        }
+                    }
+                }
+            } catch (IndexOutOfBoundsException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
