@@ -30,9 +30,11 @@ public interface AppConstants {
     String FRAGMENT_MAIN_NAME = "FragmentMain";
     String FRAGMENT_TIMER_NAME = "FragmentTimer";
     String FRAGMENT_SETTINGS_NAME = "FragmentSettings";
+    String FRAGMENT_ITEMS_NAME = "FragmentItems";
 
     String FRAGMENT_TIMER = "Automat";
     String FRAGMENT_SETTINGS = "Nastavení";
+    String FRAGMENT_ITEMS = "Historie hlášení";
 
     int MESSAGE_TYPE_START = 1;
     int MESSAGE_TYPE_END = 2;
@@ -47,6 +49,9 @@ public interface AppConstants {
 
     int ERROR_TYPE_NO_SENT = 1;
     int ERROR_TYPE_NO_DELIVERED = 2;
+
+    int WAITING = 0;
+    int UNSUCCESFUL = -1;
 
     int SMS_PERMISSION_REQUEST = 1;
     int WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST = 2;

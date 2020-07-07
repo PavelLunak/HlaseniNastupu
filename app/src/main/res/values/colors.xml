@@ -7,8 +7,12 @@
     <color name="text_color_et_settings">#535353</color>
     <color name="text_color_et_hint">#D65B5B</color>
     <color name="text_color_et_default">#A6A6A6</color>
-
     <color name="text_color">#A6A6A6</color>
+    <color name="text_color_item">#DADADA</color>
 
     <color name="contact_color">#03A9F4</color>
+    <color name="start_color">#45FF00</color>
+    <color name="start_color_dark">#298507</color>
+    <color name="end_color">#FA6363</color>
+    <color name="end_color_dark">#980606</color>
 </resources>

@@ -45,15 +45,23 @@ import com.android.volley.toolbox.Volley;
 import com.facebook.stetho.Stetho;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.database.DataSource;
+import cz.stodva.hlaseninastupu.fragments.FragmentItems;
 import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
+import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
+import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.AppSettings;
+import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
@@ -74,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements
     public FragmentTimer fragmentTimer;
     public FragmentMain fragmentMain;
     public FragmentSettings fragmentSettings;
+    public FragmentItems fragmentItems;
 
     int dayStart = -1;
     int monthStart = -1;
@@ -87,11 +96,14 @@ public class MainActivity extends AppCompatActivity implements
     int hoursEnd = -1;
     int minutesEnd = -1;
 
+    ArrayList<Report> items;
+
     MediaPlayer mediaPlayer;
     AppSettings appSettings;
+    DataSource dataSource;
 
     TextView labelToolbar;
-    ImageView imgToolbar;
+    ImageView imgToolbar, imgItems;
 
     private BroadcastReceiver reportResultBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -152,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements
 
         labelToolbar = findViewById(R.id.labelToolbar);
         imgToolbar = findViewById(R.id.imgToolbar);
+        imgItems = findViewById(R.id.imgItems);
 
         initStetho();
 
@@ -161,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements
         fragmentMain = (FragmentMain) fragmentManager.findFragmentByTag(FRAGMENT_MAIN_NAME);
         fragmentTimer = (FragmentTimer) fragmentManager.findFragmentByTag(FRAGMENT_TIMER_NAME);
         fragmentSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
+        fragmentItems = (FragmentItems) fragmentManager.findFragmentByTag(FRAGMENT_ITEMS_NAME);
 
         imgToolbar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -174,7 +188,17 @@ public class MainActivity extends AppCompatActivity implements
                     onBackPressed();
                 } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_TIMER_NAME)) {
                     onBackPressed();
+                } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_ITEMS_NAME)) {
+                    onBackPressed();
                 }
+            }
+        });
+
+        imgItems.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgItems, true);
+                showFragment(FRAGMENT_ITEMS_NAME);
             }
         });
 
@@ -232,6 +256,15 @@ public class MainActivity extends AppCompatActivity implements
 
         onBackStackChanged();
         if (fragmentTimer != null) fragmentTimer.updateViews();
+
+        getDataSource().getAllItems(new OnItemsLoadedListener() {
+            @Override
+            public void onItemsLoaded(ArrayList<Report> items) {
+                if (fragmentItems != null) {
+                    fragmentItems.updateAdapter();
+                }
+            }
+        });
     }
 
     @Override
@@ -268,12 +301,19 @@ public class MainActivity extends AppCompatActivity implements
         if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_MAIN_NAME)) {
             updateToolbarText(getString(R.string.app_name));
             updateToolbarImage(R.drawable.ic_settings_white);
+            imgItems.setVisibility(View.VISIBLE);
         } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_SETTINGS_NAME)) {
             updateToolbarText(FRAGMENT_SETTINGS);
             updateToolbarImage(R.drawable.ic_back);
+            imgItems.setVisibility(View.GONE);
         } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_TIMER_NAME)) {
             updateToolbarText(FRAGMENT_TIMER);
             updateToolbarImage(R.drawable.ic_back);
+            imgItems.setVisibility(View.GONE);
+        } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_ITEMS_NAME)) {
+            updateToolbarText(FRAGMENT_ITEMS);
+            updateToolbarImage(R.drawable.ic_back);
+            imgItems.setVisibility(View.GONE);
         }
     }
 
@@ -323,6 +363,9 @@ public class MainActivity extends AppCompatActivity implements
         } else if (name.equals(FRAGMENT_SETTINGS_NAME)) {
             fragmentSettings = new FragmentSettings();
             return fragmentSettings;
+        } else if (name.equals(FRAGMENT_ITEMS_NAME)) {
+            fragmentItems = new FragmentItems();
+            return fragmentItems;
         }
 
         return null;
@@ -387,39 +430,80 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     // Nastavení časovače pro odeslání hlášení
-    public void setTimer(int messageType, int reportType) {
+    public void setTimer(final int messageType, final int reportType) {
 
         Log.d(LOG_TAG_SMS, "(112) MainActivity - setTimer(" + AppUtils.messageTypeToString(messageType) + ")");
 
         Intent intent = new Intent(this, TimerReceiver.class);
         intent.putExtra("message_type", messageType);
-        intent.putExtra("report_type", reportType);
+        intent.putExtra("report_type", reportType); // TODO : je nutný tohle vůbec posílat?
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+        final PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this,
                 messageType == MESSAGE_TYPE_START ? ALARM_REQUEST_CODE_START : ALARM_REQUEST_CODE_END,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
-        long time = getTimeInMillis(messageType);
+        final long time = getTimeInMillis(messageType);
 
-        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
+        // Test jestli není nastavován report v minulosti
+        if (isInFuture(time)) {
+            // Test jestli není nastaven report se stejným datem
+            getDataSource().getReportByTime(time, new OnReportLoadedListener() {
+                @Override
+                public void onReportLoaded(Report report) {
+                    if (report == null) {
+                        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+                        am.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
 
-        // Nastavení příznaku o nastavení časovače
-        PrefsUtils.setIsTimer(this, messageType, true);
+                        // Vytvoření hlášení pro uložení do databáze
+                        Report newReport = new Report();
+                        newReport.setMessageType(messageType);
+                        newReport.setTime(time);
+                        newReport.setSentTime(WAITING);
+                        newReport.setDeliveryTime(WAITING);
+                        newReport.setAlarm(false);
 
-        // Uložení času automatického odeslání hlášení
-        PrefsUtils.setReportTime(this, time, messageType, REPORT_TYPE_NEXT);
+                        // Uložení hlášení do databáze
+                        getDataSource().addReport(newReport, new OnReportAddedListener() {
+                            @Override
+                            public void onReportAdded(Report report) {
+                                getDataSource().getAllItems(new OnItemsLoadedListener() {
+                                    @Override
+                                    public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                        items = new ArrayList<>(loadedItems);
 
-        // Vynulování příznaku o úspěšném odeslání hlášení
-        PrefsUtils.saveIsReportSent(this, false, messageType, REPORT_TYPE_NEXT);
+                                        if (fragmentTimer != null) fragmentTimer.updateViews();
+                                        if (fragmentMain != null) fragmentMain.updateReportInfo();
+                                    }
+                                });
+                            }
+                        });
 
-        // Vynulování příznaku o úspěšném doručení hlášení
-        PrefsUtils.saveIsReportDelivered(this, false, messageType, REPORT_TYPE_NEXT);
+                        /*
+                        // Nastavení příznaku o nastavení časovače
+                        PrefsUtils.setIsTimer(MainActivity.this, messageType, true);
 
-        if (fragmentTimer != null) fragmentTimer.updateViews();
-        if (fragmentMain != null) fragmentMain.updateReportInfo();
+                        // Uložení času automatického odeslání hlášení
+                        PrefsUtils.setReportTime(MainActivity.this, time, messageType, REPORT_TYPE_NEXT);
+
+                        // Vynulování příznaku o úspěšném odeslání hlášení
+                        PrefsUtils.saveIsReportSent(MainActivity.this, false, messageType, REPORT_TYPE_NEXT);
+
+                        // Vynulování příznaku o úspěšném doručení hlášení
+                        PrefsUtils.saveIsReportDelivered(MainActivity.this, false, messageType, REPORT_TYPE_NEXT);
+
+                        if (fragmentTimer != null) fragmentTimer.updateViews();
+                        if (fragmentMain != null) fragmentMain.updateReportInfo();
+                        */
+                    } else {
+                        DialogInfo.createDialog(MainActivity.this).setTitle("Chyba").setMessage("Na zadaný čas je již nastaveno jiné hlášení...").show();
+                    }
+                }
+            });
+        } else {
+            DialogInfo.createDialog(MainActivity.this).setTitle("Chyba").setMessage("Nelze nastavit hlášení v minulosti...").show();
+        }
     }
 
     // Zrušení časovače pro odeslání hlášení
@@ -757,8 +841,13 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public AppSettings getAppSettings() {
-        appSettings = PrefsUtils.getAppSettings(this);
+        if (appSettings == null) appSettings = PrefsUtils.getAppSettings(this);
         return appSettings;
+    }
+
+    public DataSource getDataSource() {
+        if (dataSource == null) dataSource = new DataSource(this);
+        return dataSource;
     }
 
     public int getDayStart() {
@@ -879,7 +968,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void downloadApp() {
-        Log.d("SGSGSGS", "downloadApp()");
 
         String fileName = "hlaseni_app.apk";
         final String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + File.separator + fileName;
@@ -910,16 +998,25 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public String getAppVersion() {
-        Log.d("SGSGSGS", "getAppVersion()");
-
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            Log.d("SGSGSGS", "version: " + pInfo.versionName);
             return pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public ArrayList<Report> getItems() {
+        if (this.items == null) this.items = new ArrayList<>();
+        return this.items;
+    }
+
+    // Test, zda jde o budoucí čas
+    public boolean isInFuture(long time) {
+        if (items == null) return false;
+        if (items.isEmpty()) return false;
+        return time > new Date().getTime();
     }
 
     public void selectContact() {

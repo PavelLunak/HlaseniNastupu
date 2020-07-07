@@ -22,6 +22,9 @@ import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
+import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
+import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.pickers.DatePicker;
 import cz.stodva.hlaseninastupu.pickers.TimePicker;
 import cz.stodva.hlaseninastupu.utils.Animators;
@@ -295,6 +298,10 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         switch (buttonView.getId()) {
             case R.id.chbNoSentStart:
+                activity.getDataSource().updateReportValue();
+                break;
+            /*
+            case R.id.chbNoSentStart:
                 PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_SENT);
                 PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_DELIVERED);
 
@@ -319,6 +326,7 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
                 }
 
                 break;
+            */
         }
     }
 }

@@ -13,4 +13,6 @@
     <string name="permission_sms_info">Pro odesílání SMS bude nutné této aplikaci udělit oprávnění. Pokračovat k udělení oprávnění?</string>
     <string name="permission_read_contacts_info">Pro možnost výběru kontaktu z telefonu je nutné aplikaci udělit oprávnění ke čtení kontaktů telefonu. Pokračovat k udělení oprávnění?</string>
     <string name="request_permission">Vyžádání oprávnění</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
