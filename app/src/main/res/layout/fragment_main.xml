@@ -67,97 +67,19 @@
             app:layout_constraintTop_toBottomOf="@+id/btnEndShift" />
 
         <RelativeLayout
-            android:id="@+id/layoutNextTimer"
+            android:id="@+id/layoutLastReport"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
+            android:layout_marginTop="60dp"
             android:padding="10dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/btnSetTimeForReport">
+            app:layout_constraintTop_toBottomOf="@id/btnSetTimeForReport">
 
             <TextView
-                android:id="@+id/titleNextTimer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Následující hlášení"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
-
-            <RelativeLayout
-                android:id="@+id/layoutNextTimerStart"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/titleNextTimer">
-
-                <TextView
-                    android:id="@+id/titleNextTimerStart"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:text="Nástup: "
-                    android:textColor="@color/text_color" />
-
-                <TextView
-                    android:id="@+id/labelNextTimerStart"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/titleNextTimerStart"
-                    android:padding="10dp"
-                    android:text="TextView"
-                    android:textColor="@color/text_color" />
-
-            </RelativeLayout>
-
-            <RelativeLayout
-                android:id="@+id/layoutNextTimerEnd"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/layoutNextTimerStart">
-
-                <TextView
-                    android:id="@+id/titleNextTimerEnd"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:text="Konec:"
-                    android:textColor="@color/text_color" />
-
-                <TextView
-                    android:id="@+id/labelNextTimerEnd"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/titleNextTimerEnd"
-                    android:padding="10dp"
-                    android:text="TextView"
-                    android:textColor="@color/text_color" />
-
-            </RelativeLayout>
-
-        </RelativeLayout>
-
-        <View
-            android:id="@+id/view"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_margin="10dp"
-            android:background="#656565"
-            app:layout_constraintTop_toBottomOf="@+id/layoutNextTimer" />
-
-        <RelativeLayout
-            android:id="@+id/layoutLastTimer"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:padding="10dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/view">
-
-            <TextView
-                android:id="@+id/titleLastTimer"
+                android:id="@+id/titleLastReport"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Poslední hlášení"
@@ -167,110 +89,74 @@
                 app:layout_constraintStart_toStartOf="parent" />
 
             <RelativeLayout
-                android:id="@+id/layoutLastTimerStart"
+                android:id="@+id/layoutLastTimer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/titleLastTimer">
+                android:layout_below="@id/titleLastReport">
 
                 <ImageView
-                    android:id="@+id/imgLastDeliveredSart"
+                    android:id="@+id/imgLastDelivered"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
+                    android:layout_alignTop="@id/labelLastReportTime"
+                    android:layout_alignBottom="@id/labelLastReportTime"
                     android:layout_alignParentRight="true"
-                    android:layout_centerVertical="true"
+                    android:layout_centerVertical="false"
                     android:layout_marginRight="10dp"
                     app:srcCompat="@drawable/ic_check_gray" />
 
                 <ImageView
-                    android:id="@+id/imgLastSentStart"
+                    android:id="@+id/imgLastSent"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
+                    android:layout_alignTop="@id/labelLastReportTime"
+                    android:layout_alignBottom="@id/labelLastReportTime"
                     android:layout_alignParentRight="true"
-                    android:layout_centerVertical="true"
+                    android:layout_centerVertical="false"
                     android:layout_marginRight="15dp"
                     app:srcCompat="@drawable/ic_check_gray" />
 
                 <ImageView
-                    android:id="@+id/imgStartWarn"
+                    android:id="@+id/imgLastWarn"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
+                    android:layout_alignTop="@id/labelLastReportTime"
+                    android:layout_alignBottom="@id/labelLastReportTime"
                     android:layout_centerVertical="true"
                     android:layout_marginRight="10dp"
-                    android:layout_toLeftOf="@id/imgLastSentStart"
+                    android:layout_toLeftOf="@id/imgLastSent"
                     android:visibility="gone"
                     app:srcCompat="@drawable/ic_warning" />
 
                 <TextView
-                    android:id="@+id/titleLastTimerStart"
+                    android:id="@+id/labelLastMessageType"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
+                    android:layout_alignTop="@id/labelLastReportTime"
+                    android:layout_alignBottom="@id/labelLastReportTime"
+                    android:layout_centerVertical="false"
+                    android:gravity="center_vertical"
                     android:text="Nástup: "
-                    android:textColor="@color/text_color" />
+                    android:textColor="#FFE500" />
 
                 <TextView
-                    android:id="@+id/labelLastTimerStart"
+                    android:id="@+id/labelLastReportTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_toLeftOf="@id/imgLastSentStart"
-                    android:layout_toRightOf="@id/titleLastTimerStart"
+                    android:layout_toLeftOf="@id/imgLastSent"
+                    android:layout_toRightOf="@id/labelLastMessageType"
                     android:padding="10dp"
                     android:text="TextView"
                     android:textColor="@color/text_color" />
 
-            </RelativeLayout>
-
-            <RelativeLayout
-                android:id="@+id/layoutLastTimerEnd"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/layoutLastTimerStart">
-
-                <ImageView
-                    android:id="@+id/imgLastDeliveredEnd"
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:layout_alignParentRight="true"
-                    android:layout_centerVertical="true"
-                    android:layout_marginRight="10dp"
-                    app:srcCompat="@drawable/ic_check_gray" />
-
-                <ImageView
-                    android:id="@+id/imgLastSentEnd"
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:layout_alignParentRight="true"
-                    android:layout_centerVertical="true"
-                    android:layout_marginRight="15dp"
-                    app:srcCompat="@drawable/ic_check_gray" />
-
-                <ImageView
-                    android:id="@+id/imgEndWarn"
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:layout_centerVertical="true"
-                    android:layout_marginRight="10dp"
-                    android:layout_toLeftOf="@id/imgLastSentEnd"
-                    android:visibility="gone"
-                    app:srcCompat="@drawable/ic_warning" />
-
                 <TextView
-                    android:id="@+id/titleLastTimerEnd"
+                    android:id="@+id/labelLastMessage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:text="Konec:"
-                    android:textColor="@color/text_color" />
-
-                <TextView
-                    android:id="@+id/labelLastTimerEnd"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_toLeftOf="@id/imgLastSentEnd"
-                    android:layout_toRightOf="@id/titleLastTimerEnd"
-                    android:padding="10dp"
+                    android:layout_below="@id/labelLastReportTime"
+                    android:layout_alignLeft="@id/labelLastReportTime"
                     android:text="TextView"
-                    android:textColor="@color/text_color" />
+                    android:textColor="#2EFF00" />
 
             </RelativeLayout>
 

@@ -11,8 +11,15 @@ import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.util.Date;
+
 import cz.stodva.hlaseninastupu.MainActivity;
+import cz.stodva.hlaseninastupu.database.DataSource;
+import cz.stodva.hlaseninastupu.database.DbHelper;
+import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
 import cz.stodva.hlaseninastupu.objects.AppSettings;
+import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.AppUtils;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
@@ -23,110 +30,70 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
     TelephonyManager telephonyManager;
     PhoneStateListener phoneStateListener;
 
+    DataSource dataSource;
+
     @Override
-    public void onReceive(final Context context, Intent intent) {
-        Log.d(LOG_TAG_SMS, "(01) TimerReceiver - onReceive()");
+    public void onReceive(final Context context, final Intent intent) {
+        Log.d(LOG_TAG_SMS, "(01) TimerReceiver - onReceive()" + LOG_UNDERLINED);
+
+        dataSource = new DataSource(context);
 
         WakeLocker.acquire(context);
 
-        final int messageType = intent.getIntExtra("message_type", 0);
-        final int reportType = intent.getIntExtra("report_type", 0);
+        final int reportId = intent.getIntExtra("report_id", -1);
 
-        Log.d(AppConstants.LOG_TAG_SMS, "(02) message type: " + AppUtils.messageTypeToString(messageType));
-        Log.d(AppConstants.LOG_TAG_SMS, "(03) report type: " + AppUtils.reportTypeToString(reportType));
+        if (reportId < 0) return;
 
+        dataSource.getReportById(reportId, new OnReportLoadedListener() {
+            @Override
+            public void onReportLoaded(Report report) {
+                if (report != null) process(context, intent, report);
+                else Log.d(LOG_TAG_SMS, LOG_TAB + "NENALEZENO HLÁŠENÍ PODLE ID");
+            }
+        });
+
+        Log.d(AppConstants.LOG_TAG_SMS, "(02) report id: " + reportId);
+    }
+
+    private void process(final Context context, final Intent intent, final Report report) {
         //Jde o budík, po kterém má být zkontrolováno odeslání (doručení) hlášení
         if (intent.hasExtra("alarm_check_error")) {
 
-            Log.d(LOG_TAG_SMS, "(04) TimerReceiver - - - - - - - CHECK ERROR - - - - - - -");
+            Log.d(LOG_TAG_SMS, LOG_TAB + "(04) TimerReceiver - - - - - - - CHECK ERROR - - - - - - -");
 
             String errMsg = null;
+            int errorType = 0;
 
-            // NÁSTUP
-            if (messageType == MESSAGE_TYPE_START) {
-
-                Log.d(LOG_TAG_SMS, "(05) TimerReceiver - NÁSTUP");
-
-                // JE NASTAVEN ALARM NEODESLÁNÍ NÁSTUPU?
-                if (PrefsUtils.isAlarm(context, MESSAGE_TYPE_START, ALARM_TYPE_NO_SENT)) {
-                    Log.d(LOG_TAG_SMS, "(06) TimerReceiver - JE NASTAVEN ALARM NEODESLÁNÍ NÁSTUPU?");
-                    //Bylo hlášení nástupu odesláno?
-                    if (!PrefsUtils.isReportSent(context, MESSAGE_TYPE_START, REPORT_TYPE_LAST)) {
-                        Log.d(LOG_TAG_SMS, "(07) TimerReceiver - Nepodařilo se odeslat hlášení nástupu");
-                        errMsg = "Nepodařilo se v nastaveném časovém limitu odeslat hlášení nástupu!";
-                    }
-                }
-
-                //BYL REPORT ODESLÁN? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
-                if (PrefsUtils.isReportSent(context, MESSAGE_TYPE_START, REPORT_TYPE_LAST)) {
-                    // JE NASTAVEN ALARM NEDORUČENÍ NÁSTUPU?
-                    if (PrefsUtils.isAlarm(context, MESSAGE_TYPE_START, ALARM_TYPE_NO_DELIVERED)) {
-                        Log.d(LOG_TAG_SMS, "(08) TimerReceiver - JE NASTAVEN ALARM NEDORUČENÍ NÁSTUPU");
-                        // Bylo hlášení nástupu doručeno?
-                        if (!PrefsUtils.isReportDelivered(context, MESSAGE_TYPE_START, REPORT_TYPE_LAST)) {
-                            Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nástupu nebylo doručeno");
-                            errMsg = "Hlášení nástupu nebylo v nastaveném časovém limitu doručeno!";
-                        }
-                    }
-                }
+            if (report.getSentTime() == UNSUCCESFUL) {
+                Log.d(LOG_TAG_SMS, LOG_TAB + "(07) TimerReceiver - Nepodařilo se odeslat hlášení");
+                errMsg = "Nepodařilo se v nastaveném časovém limitu odeslat hlášení!";
+                errorType = ERROR_TYPE_NO_SENT;
             }
-            // KONEC
-            else if (messageType == MESSAGE_TYPE_END) {
 
-                Log.d(LOG_TAG_SMS, "(10) TimerReceiver - KONEC");
-
-                // JE NASTAVEN ALARM NEODESLÁNÍ KONCE?
-                if (PrefsUtils.isAlarm(context, MESSAGE_TYPE_END, ALARM_TYPE_NO_SENT)) {
-                    Log.d(LOG_TAG_SMS, "(11) TimerReceiver - JE NASTAVEN ALARM NEODESLÁNÍ KONCE");
-                    // Bylo hlášení konce odesláno?
-                    if (!PrefsUtils.isReportSent(context, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) {
-                        Log.d(LOG_TAG_SMS, "(12) TimerReceiver - Nepodařilo se odeslat hlášení konce");
-                        errMsg = "Nepodařilo se v nastaveném časovém limitu odeslat hlášení konce!";
-                    }
+            //BYLO HLÁŠENÍ ODESLÁNO? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
+            if (report.getSentTime() > UNSUCCESFUL) {
+                if (report.getDeliveryTime() == UNSUCCESFUL) {
+                    Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nebylo doručeno");
+                    errMsg = "Hlášení nebylo v nastaveném časovém limitu doručeno!";
+                    errorType = ERROR_TYPE_NO_DELIVERED;
                 }
-
-                //BYL REPORT ODESLÁN? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
-                if (PrefsUtils.isReportSent(context, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) {
-                    // JE NASTAVEN ALARM NEDORUČENÍ KONCE?
-                    if (PrefsUtils.isAlarm(context, MESSAGE_TYPE_END, ALARM_TYPE_NO_DELIVERED)) {
-                        Log.d(LOG_TAG_SMS, "(13) TimerReceiver - JE NASTAVEN ALARM NEDORUČENÍ KONCE");
-                        // Bylo hlášení konce doručeno?
-                        if (!PrefsUtils.isReportDelivered(context, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) {
-                            Log.d(LOG_TAG_SMS, "(14) TimerReceiver - Hlášení konce nebylo doručeno");
-                            errMsg = "Hlášení konce nebylo v nastaveném časovém limitu doručeno!";
-                        }
-                    }
-                }
-            } else {
-                WakeLocker.release();
-                return;
             }
 
             if (errMsg != null) {
-                requestShowNoSentError(context, messageType, errMsg, reportType);
+                requestShowNoSentError(context, report, errMsg, errorType);
             }
         } else {
             Log.d(LOG_TAG_SMS, "(15) TimerReceiver - - - - - - - SEND REPORT - - - - - - -");
-            Log.d(LOG_TAG_SMS, "(16) TimerReceiver - !!! NÁSLEDUJÍCÍ HLÁŠENÍ SE MĚNÍ V POSLEDNÍ HLÁŠENÍ !!!");
 
-            PrefsUtils.setIsTimer(context, messageType, false);
-
-            // TODO - !!! DŮLEŽITÉ MÍSTO - NÁSLEDUJÍCÍ HLÁŠENÍ SE MĚNÍ V POSLEDNÍ HLÁŠENÍ !!!
-            // Nastavení posledního času hlášení podle času následujícího (právě doručeného) hlášení
-            PrefsUtils.setReportTime(context, PrefsUtils.getReportTime(context, messageType, AppConstants.REPORT_TYPE_NEXT), messageType, AppConstants.REPORT_TYPE_LAST);
-            // Vynulování příznaku o úspěšném odeslání hlášení
-            PrefsUtils.saveIsReportSent(context, false, messageType, AppConstants.REPORT_TYPE_LAST);
-            // Vynulování příznaku o úspěšném doručení hlášení
-            PrefsUtils.saveIsReportDelivered(context, false, messageType, AppConstants.REPORT_TYPE_LAST);
-            // Odstranění následujícího času hlášení z prefs
-            PrefsUtils.setReportTime(context, AppConstants.PREFS_DELETE_KEY, messageType, AppConstants.REPORT_TYPE_NEXT);
-
-            final String text = getMessage(context, messageType);
+            final String text = getMessage(context, report.getMessageType());
 
             if (text == null) {
                 WakeLocker.release();
                 return;
             }
+
+            // Nastavení doručení na neúspěšné pro případ nedoručení hlášení
+            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
 
             telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 
@@ -138,23 +105,23 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                     switch (serviceState.getState()) {
                         case ServiceState.STATE_IN_SERVICE:
                             Log.d(LOG_TAG, "(17) TimerReceiver - onServiceStateChanged: STATE_IN_SERVICE");
-                            sendReport(context, messageType, text, reportType);
+                            sendReport(context, report, text);
                             break;
                         case ServiceState.STATE_OUT_OF_SERVICE:
                             Log.d(LOG_TAG, "(18) TimerReceiver - onServiceStateChanged: STATE_OUT_OF_SERVICE: ");
-                            requestShowNoSentError(context, messageType, "HLÁŠENÍ NELZE ODESLAT - není dostupná síť", reportType);
+                            requestShowNoSentError(context, report, "Hlášení nebylo možné odeslat - není dostupná síť", ERROR_TYPE_NO_SENT);
                             break;
                         case ServiceState.STATE_EMERGENCY_ONLY:
                             Log.d(LOG_TAG, "(19) TimerReceiver - onServiceStateChanged: STATE_EMERGENCY_ONLY");
-                            requestShowNoSentError(context, messageType, "HLÁŠENÍ NELZE ODESLAT - je povoleno pouze tísňové volání", reportType);
+                            requestShowNoSentError(context, report, "Hlášení nebylo možné odeslat - je povoleno pouze tísňové volání", ERROR_TYPE_NO_SENT);
                             break;
                         case ServiceState.STATE_POWER_OFF:
                             Log.d(LOG_TAG, "(20) TimerReceiver - onServiceStateChanged: STATE_POWER_OFF");
-                            requestShowNoSentError(context, messageType, "HLÁŠENÍ NELZE ODESLAT - je zapnut režim letadlo", reportType);
+                            requestShowNoSentError(context, report, "Hlášení nebylo možné odeslat - je zapnut režim letadlo", ERROR_TYPE_NO_SENT);
                             break;
                         default:
                             Log.d(LOG_TAG, "(21) TimerReceiver - onServiceStateChanged: UNKNOWN_STATE: ");
-                            requestShowNoSentError(context, messageType, "HLÁŠENÍ NELZE ODESLAT - neznámý důvod nedostupnosti sítě", reportType);
+                            requestShowNoSentError(context, report, "Hlášení nebylo možné odeslat - neznámý důvod nedostupnosti sítě", ERROR_TYPE_NO_SENT);
                             break;
                     }
                 }
@@ -182,27 +149,27 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
         return null;
     }
 
-    private void sendReport(Context context, int messageType, String text, int reportType) {
+    private void sendReport(Context context, Report report, String text) {
         Log.d(LOG_TAG, "(22) TimerReceiver - sendReport()");
 
         telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
 
+        AppUtils.vibrate(context);
+
         Intent sentIntent = new Intent(context, MessageSentReceiver.class);
-        sentIntent.putExtra("message_type", messageType);
-        sentIntent.putExtra("report_type", reportType);
+        sentIntent.putExtra("report_id", report.getId());
         PendingIntent pi1 = PendingIntent.getBroadcast(
                 context,
-                messageType == MESSAGE_TYPE_START ? SENT_REQUEST_START : SENT_REQUEST_END,
+                1,
                 sentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent deliveredIntent = new Intent(context, MessageDeliveredReceiver.class);
-        deliveredIntent.putExtra("message_type", messageType);
-        deliveredIntent.putExtra("report_type", reportType);
+        sentIntent.putExtra("report_id", report.getId());
         PendingIntent pi2 = PendingIntent.getBroadcast(
                 context,
-                messageType == MESSAGE_TYPE_START ? DELIVERED_REQUEST_START : DELIVERED_REQUEST_END,
+                2,
                 deliveredIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -214,63 +181,74 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                 pi1,
                 pi2);
 
-        // Nastavení příznaku o odeslání hlášení
-        PrefsUtils.saveIsReportSent(context, true, messageType, REPORT_TYPE_LAST);
 
-        // Vynulování příznaku o nastavení alarmu neodeslání hlášení
-        PrefsUtils.setAlarm(context, false, messageType, ALARM_TYPE_NO_SENT);
+        /*
+        // TODO - tohle se provádí v MessageSentReceiver - po skončení testování bez SMS smazat
+        dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_SENT, new Date().getTime(), null);
+        dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_REQUEST_CODE, NONE, null);
+        */
     }
 
-    private void requestShowNoSentError(Context context, int messageType, String errMessage, int reportType) {
+    private void requestShowNoSentError(Context context, final Report report, String errMsg, int errorType) {
 
-        Log.d(LOG_TAG, "(23) TimerReceiver - sendError()");
+        Log.d(LOG_TAG, "(23) TimerReceiver - sendError(errorType: " + AppUtils.errorTypeToString(errorType) + ")");
+
+        if (dataSource == null) dataSource = new DataSource(context);
+
+        if (errorType == ERROR_TYPE_NO_SENT) {
+            dataSource.updateReportMessage(report.getId(), errMsg, null);
+            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_SENT, UNSUCCESFUL, null);
+
+            // Pokud nelze hlášení odeslat, bude zrušen alarm pro kontrolu odeslání a doručení
+            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
+            cancelTimerForError(context, report);
+        } else {
+            dataSource.updateReportMessage(report.getId(), errMsg, null);
+            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
+        }
 
         telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
 
-        // Nastavení příznaku o neodeslání posledního hlášení
-        //PrefsUtils.saveIsReportSent(context, false, messageType, REPORT_TYPE_NEXT);
-
         // Není nastaven příznak o potřebě alarmu při neodeslání i nedoručení hlášení
-        if (!PrefsUtils.isAlarm(context, messageType, ALARM_TYPE_BOTH)) {
+        if (report.isErrorAlert()) {
+            Intent intentToMain = new Intent(context, MainActivity.class);
+            intentToMain.putExtra("report_id", report.getId());
+            intentToMain.putExtra("on_error", 1);
+            intentToMain.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intentToMain);
+        } else {
             // Odeslání informace o neodeslání do aktivity, pokud je otevřena, pro aktualizaci zobrazených dat
             Intent intentResult = new Intent(ACTION_REPORT_RESULT);
-            intentResult.putExtra("message_type", messageType);
-            intentResult.putExtra("report_type", reportType);
+            intentResult.putExtra("report_id", report.getId());
             context.sendBroadcast(intentResult);
-            return;
         }
-
-        // Zrušení alarmu neodeslání hlášení (po nastavené časové prodlevě jsou kontrolovány
-        // příznaky odeslání a doručení hlášení - tento časovač lze vypnout, protože došlo
-        // k chybě již při samotném odesílání) i pro nedoručení hlášení.
-        cancelTimerForError(context, messageType);
-
-        Intent intentToMain = new Intent(context, MainActivity.class);
-        intentToMain.putExtra("messageType", messageType);
-        intentToMain.putExtra("error_message", errMessage);
-        intentToMain.putExtra("on_error", 1);
-        intentToMain.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intentToMain);
     }
 
-    public void cancelTimerForError(Context context, int messageType) {
+    public void cancelTimerForError(final Context context, final Report report) {
 
         Log.d(LOG_TAG, "(24) TimerReceiver - cancelTimerForError()");
 
         Intent intent = new Intent(context, TimerReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
-                ALARM_REQUEST_ERROR,
+                report.getRequestCodeForErrorAlarm(),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         am.cancel(pendingIntent);
 
-        // Vynulování příznaků o nastavených alarmech
-        PrefsUtils.setAlarm(context, false, messageType, ALARM_TYPE_NO_SENT);
-        PrefsUtils.setAlarm(context, false, messageType, ALARM_TYPE_NO_DELIVERED);
+        dataSource.updateReportValue(
+                report.getId(),
+                DbHelper.COLUMN_ERROR_REQUEST_CODE,
+                NONE,
+                new OnReportUpdatedListener() {
+                    @Override
+                    public void onReportUpdated(Report updatedReport) {
+                        report.setRequestCodeForErrorAlarm(NONE);
+                    }
+                });
     }
 
     private String getPhoneNumber(Context context) {

@@ -16,10 +16,13 @@ public class DbHelper extends SQLiteOpenHelper {
     public static final String COLUMN_TIME = "report_time";
     public static final String COLUMN_SENT = "sending_time";
     public static final String COLUMN_DELIVERED = "delivery_time";
-    public static final String COLUMN_IS_ALARM = "is_alarm";
+    public static final String COLUMN_REQUEST_CODE = "request_code";
+    public static final String COLUMN_ERROR_REQUEST_CODE = "error_request_code";
+    public static final String COLUMN_IS_ERROR_ALERT = "error_alert";
+    public static final String COLUMN_MESSAGE = "message";
 
     private static final String DATABASE_NAME = "reports.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 5;
 
     private static final String TABLE_DEVICES_CREATE = "CREATE TABLE "
             + TABLE_REPORTS
@@ -28,7 +31,10 @@ public class DbHelper extends SQLiteOpenHelper {
             + COLUMN_TIME + " VARCHAR (100), "
             + COLUMN_SENT + " VARCHAR (100), "
             + COLUMN_DELIVERED + " VARCHAR (100), "
-            + COLUMN_IS_ALARM + " VARCHAR (1) "
+            + COLUMN_REQUEST_CODE + " VARCHAR (100), "
+            + COLUMN_ERROR_REQUEST_CODE + " VARCHAR (100), "
+            + COLUMN_IS_ERROR_ALERT + " VARCHAR (1), "
+            + COLUMN_MESSAGE + " VARCHAR (200) "
             + ");";
 
     public Context context;

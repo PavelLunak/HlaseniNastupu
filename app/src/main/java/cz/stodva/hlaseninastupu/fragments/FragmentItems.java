@@ -54,6 +54,7 @@ public class FragmentItems extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        updateAdapter();
     }
 
     public void updateAdapter() {
@@ -70,5 +71,9 @@ public class FragmentItems extends Fragment {
         adapter = new AdapterItems(activity);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+    }
+
+    public AdapterItems getAdapter() {
+        return adapter;
     }
 }

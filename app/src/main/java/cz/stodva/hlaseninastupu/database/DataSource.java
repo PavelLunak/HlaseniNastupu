@@ -5,21 +5,26 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnMaxIdCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
+import cz.stodva.hlaseninastupu.utils.AppConstants;
+import cz.stodva.hlaseninastupu.utils.AppUtils;
 
 
-public class DataSource {
+public class DataSource implements AppConstants {
 
     private SQLiteDatabase database;
     Context context;
@@ -27,6 +32,7 @@ public class DataSource {
 
 
     public DataSource(Context context) {
+        Log.d(LOG_TAG, "DataSource - CONSTRUCTOR");
         dbHelper = new DbHelper(context);
         this.context = context;
     }
@@ -52,9 +58,10 @@ public class DataSource {
         dbHelper = null;
     }
 
-    public void clearTable() {
+    public void clearTable(OnDatabaseClearedListener listener) {
         if (database == null) open();
         database.delete(DbHelper.TABLE_REPORTS, null, null);
+        if (listener != null) listener.onDatabaseCleared();
     }
 
     public String formatDate(Date date) {
@@ -63,6 +70,8 @@ public class DataSource {
     }
 
     public void addReport(final Report report, final OnReportAddedListener listener) {
+        Log.d(LOG_TAG, "DataSource - addReport(report: " + report.toString() + ")" + LOG_UNDERLINED);
+
         if (report == null) {
             if (listener != null) listener.onReportAdded(null);
             return;
@@ -72,9 +81,12 @@ public class DataSource {
         ContentValues values = new ContentValues();
         values.put(DbHelper.COLUMN_TYPE, report.getMessageType());
         values.put(DbHelper.COLUMN_TIME, String.valueOf(report.getTime()));
-        values.put(DbHelper.COLUMN_SENT, String.valueOf(report.getSendingTime()));
+        values.put(DbHelper.COLUMN_SENT, String.valueOf(report.getSentTime()));
         values.put(DbHelper.COLUMN_DELIVERED, String.valueOf(report.getDeliveryTime()));
-        values.put(DbHelper.COLUMN_IS_ALARM, report.isAlarm() ? "1" : "0");
+        values.put(DbHelper.COLUMN_REQUEST_CODE, String.valueOf(report.getAlarmRequestCode()));
+        values.put(DbHelper.COLUMN_ERROR_REQUEST_CODE, String.valueOf(report.getRequestCodeForErrorAlarm()));
+        values.put(DbHelper.COLUMN_IS_ERROR_ALERT, report.isErrorAlert() ? "1" : "0");
+        values.put(DbHelper.COLUMN_MESSAGE, report.getMessage());
 
         long insertId = database.insert(DbHelper.TABLE_REPORTS, null, values);
 
@@ -90,30 +102,82 @@ public class DataSource {
         cursor.moveToFirst();
         final Report r = cursorToReport(cursor);
         if (listener != null) listener.onReportAdded(r);
+
+        if (r != null) Log.d(LOG_TAG, LOG_TAB + "added report: " + r.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
         cursor.close();
     }
 
     public void getReportById(int reportId, OnReportLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getReportById(reportId: " + reportId + ")" + LOG_UNDERLINED);
+
         open();
         Report toReturn = null;
         String selectQuery = "SELECT  * FROM " + DbHelper.TABLE_REPORTS + " WHERE " + DbHelper.COLUMN_ID + " = '" + reportId + "'";
         Cursor cursor = database.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) toReturn = cursorToReport(cursor);
         cursor.close();
+
+        if (toReturn != null) Log.d(LOG_TAG, LOG_TAB + "report by ID: " + toReturn.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
         if (listener != null) listener.onReportLoaded(toReturn);
     }
 
+    public void getReportByMaxId(final OnReportLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getReportByMaxId()" + LOG_UNDERLINED);
+
+        getMaxId(new OnMaxIdCheckedListener() {
+            @Override
+            public void onMaxIdChecked(int maxId) {
+                Report toReturn = null;
+                String selectQuery = "SELECT  * FROM " + DbHelper.TABLE_REPORTS + " WHERE " + DbHelper.COLUMN_ID + " = '" + maxId + "'";
+                Cursor cursor = database.rawQuery(selectQuery, null);
+                if (cursor.moveToFirst()) toReturn = cursorToReport(cursor);
+                cursor.close();
+
+                if (toReturn != null) Log.d(LOG_TAG, LOG_TAB + "report with max ID: " + toReturn.toString());
+                else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
+                if (listener != null) listener.onReportLoaded(toReturn);
+            }
+        });
+    }
+
+    public void getMaxId(OnMaxIdCheckedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getMaxId()" + LOG_UNDERLINED);
+
+        open();
+        int maxId = 0;
+        Cursor cursor = database.rawQuery("select max(id) as id from " + DbHelper.TABLE_REPORTS, null);
+        if (cursor.moveToFirst()) maxId = cursor.getInt(0);
+        cursor.close();
+
+        Log.d(LOG_TAG, LOG_TAB + "max ID: " + maxId);
+
+        if (listener != null) listener.onMaxIdChecked(maxId);
+    }
+
     public void getReportByTime(long reportTime, OnReportLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getReportByTime(reportTime: " + AppUtils.timeToString(reportTime) + ")" + LOG_UNDERLINED);
+
         open();
         Report toReturn = null;
         String selectQuery = "SELECT  * FROM " + DbHelper.TABLE_REPORTS + " WHERE " + DbHelper.COLUMN_TIME + " = '" + reportTime + "'";
         Cursor cursor = database.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) toReturn = cursorToReport(cursor);
         cursor.close();
+
+        if (toReturn != null) Log.d(LOG_TAG, LOG_TAB + "report by time: " + toReturn.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
         if (listener != null) listener.onReportLoaded(toReturn);
     }
 
     public void updateReportValue(int reportId, String valueType, long value, OnReportUpdatedListener listener) {
+        Log.d(LOG_TAG, "DataSource - updateReportValue(reportId: " + reportId + ", valueType: " + valueType + ")" + LOG_UNDERLINED);
+
         if (reportId < 0) {
             if (listener != null) listener.onReportUpdated(null);
             return;
@@ -137,16 +201,55 @@ public class DataSource {
 
         cursor.moveToFirst();
         final Report r = cursorToReport(cursor);
+
+        if (r != null) Log.d(LOG_TAG, LOG_TAB + "updated report: " + r.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
+        if (listener != null) listener.onReportUpdated(r);
+    }
+
+    public void updateReportMessage(int reportId, String message, OnReportUpdatedListener listener) {
+        Log.d(LOG_TAG, "DataSource - updateRMessage()" + LOG_UNDERLINED);
+
+        if (reportId < 0) {
+            if (listener != null) listener.onReportUpdated(null);
+            return;
+        }
+
+        if (database == null) open();
+
+        ContentValues values = new ContentValues();
+        values.put(DbHelper.COLUMN_MESSAGE, message);
+
+        int rowsUpdated = database.update(DbHelper.TABLE_REPORTS, values, DbHelper.COLUMN_ID + " = ?", new String[] {String.valueOf(reportId)});
+
+        final Cursor cursor = database.query(
+                DbHelper.TABLE_REPORTS,
+                null,
+                DbHelper.COLUMN_ID + " = " + reportId,
+                null,
+                null,
+                null,
+                null);
+
+        cursor.moveToFirst();
+        final Report r = cursorToReport(cursor);
+
+        if (r != null) Log.d(LOG_TAG, LOG_TAB + "updated report: " + r.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
+
         if (listener != null) listener.onReportUpdated(r);
     }
 
     public void removeItem(int itemId, OnItemDeletedListener listener) {
+        Log.d(LOG_TAG, "DataSource - removeItem(itemId: " + itemId + ")" + LOG_UNDERLINED);
         open();
         int rowsRemoved = database.delete(DbHelper.TABLE_REPORTS, DbHelper.COLUMN_ID + " = ?", new String[] {String.valueOf(itemId)});
         if (listener != null) listener.onItemDeleted();
     }
 
     public void getAllItems(OnItemsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getAllItems()" + LOG_UNDERLINED);
         open();
         ArrayList<Report> toReturn = new ArrayList<>();
         Report report;
@@ -160,7 +263,7 @@ public class DataSource {
                     null,
                     null,
                     null,
-                    DbHelper.COLUMN_ID + " ASC");
+                    DbHelper.COLUMN_TIME + " DESC");
 
             cursor.moveToFirst();
 
@@ -179,6 +282,7 @@ public class DataSource {
     }
 
     private Report cursorToReport(Cursor cursor) {
+        Log.d(LOG_TAG, "DataSource - cursorToReport()" + LOG_UNDERLINED);
         Report report = new Report();
 
         report.setId(cursor.getInt(0));
@@ -186,18 +290,29 @@ public class DataSource {
         report.setTime(Long.parseLong(cursor.getString(2)));
         report.setSentTime(Long.parseLong(cursor.getString(3)));
         report.setDeliveryTime(Long.parseLong(cursor.getString(4)));
-        report.setAlarm(cursor.getString(5).equals("1"));
+        report.setAlarmRequestCode(Integer.parseInt(cursor.getString(5)));
+        report.setRequestCodeForErrorAlarm(Integer.parseInt(cursor.getString(6)));
+        report.setErrorAlert(cursor.getString(7).equals("1"));
+        report.setMessage(cursor.getString(8));
+
+        if (report != null) Log.d(LOG_TAG, LOG_TAB + report.toString());
+        else Log.d(LOG_TAG, LOG_TAB + "NULL");
 
         return report;
     }
 
     public void getItemsCount(OnItemsCountCheckedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getItemsCount()" + LOG_UNDERLINED);
+
         open();
         int toReturn = 0;
         String selectQuery = "SELECT COUNT(*) AS pocet FROM " + DbHelper.TABLE_REPORTS;
         Cursor cursor = database.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) toReturn = cursor.getInt(0);
         cursor.close();
+
+        Log.d(LOG_TAG, LOG_TAB + "count: " + toReturn);
+
         if (listener != null) listener.onItemsCountChecked(toReturn);
     }
 }

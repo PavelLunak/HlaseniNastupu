@@ -2,13 +2,14 @@ package cz.stodva.hlaseninastupu.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,31 +19,28 @@ import androidx.fragment.app.Fragment;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.pickers.DatePicker;
 import cz.stodva.hlaseninastupu.pickers.TimePicker;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
-import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
-public class FragmentTimer extends Fragment implements AppConstants, CompoundButton.OnCheckedChangeListener {
+public class FragmentTimer extends Fragment implements AppConstants {
 
     MainActivity activity;
 
-    TextView labelDateStart, labelDateEnd, labelTimeStart, labelTimeEnd;
-    TextView btnOkStart, btnOkEnd;
-    TextView titleStartTime, titleEndTime;
-    TextView labelNextTimerStart, labelNextTimerEnd;
-    Button btnCancelTimerStart, btnCancelTimerEnd;
-    LinearLayout layoutStart, layoutEnd;
-    CheckBox chbNoSentStart;
-    CheckBox chbNoSentEnd;
+    RadioGroup rgStartEnd;
+    RadioButton rbStart, rbEnd;
+
+    TextView labelDate, labelTime;
+    TextView btnOk;
+    CheckBox chbErrorAlarm;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -53,28 +51,15 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_timer, container, false);
+        View view = inflater.inflate(R.layout.fragment_timer_new, container, false);
 
-        labelDateStart = view.findViewById(R.id.labelDateStart);
-        labelDateEnd = view.findViewById(R.id.labelDateEnd);
-        labelTimeStart = view.findViewById(R.id.labelTimeStart);
-        labelTimeEnd = view.findViewById(R.id.labelTimeEnd);
-        labelNextTimerStart = view.findViewById(R.id.labelNextTimerStart);
-        labelNextTimerEnd = view.findViewById(R.id.labelNextTimerEnd);
-        titleStartTime = view.findViewById(R.id.titleStartTime);
-        titleEndTime = view.findViewById(R.id.titleEndTime);
-
-        btnOkStart = view.findViewById(R.id.btnOkStart);
-        btnOkEnd = view.findViewById(R.id.btnOkEnd);
-        btnCancelTimerStart = view.findViewById(R.id.btnCancelTimerStart);
-        btnCancelTimerEnd = view.findViewById(R.id.btnCancelTimerEnd);
-        layoutStart = view.findViewById(R.id.layoutStart);
-        layoutEnd = view.findViewById(R.id.layoutEnd);
-        chbNoSentStart = view.findViewById(R.id.chbNoSentStart);
-        chbNoSentEnd = view.findViewById(R.id.chbNoSentEnd);
-
-        chbNoSentStart.setOnCheckedChangeListener(this);
-        chbNoSentEnd.setOnCheckedChangeListener(this);
+        rgStartEnd = view.findViewById(R.id.rgStartEnd);
+        rbStart = view.findViewById(R.id.rbStart);
+        rbEnd = view.findViewById(R.id.rbEnd);
+        labelDate = view.findViewById(R.id.labelDate);
+        labelTime = view.findViewById(R.id.labelTime);
+        btnOk = view.findViewById(R.id.btnOk);
+        chbErrorAlarm = view.findViewById(R.id.chbErrorAlarm);
 
         return view;
     }
@@ -83,6 +68,9 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        activity.actualReport = new Report();
+        activity.actualReport.setMessageType(getMessageType());
+
         Calendar calendar = Calendar.getInstance();
 
         activity.setDateData(calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR), MESSAGE_TYPE_START);
@@ -90,14 +78,14 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
 
         updateViews();
 
-        labelDateStart.setOnClickListener(new View.OnClickListener() {
+        labelDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 DialogFragment newFragment = new DatePicker(new DatePicker.OnDateSelectedListener() {
                     @Override
                     public void onDateSelected(int day, int month, int year) {
                         activity.setDateData(day, month, year, MESSAGE_TYPE_START);
-                        labelDateStart.setText("" + day + "." + (month + 1) + "." + year);
+                        labelDate.setText("" + day + "." + (month + 1) + "." + year);
                     }
                 });
 
@@ -106,32 +94,17 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
             }
         });
 
-        labelDateEnd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DialogFragment newFragment = new DatePicker(new DatePicker.OnDateSelectedListener() {
-                    @Override
-                    public void onDateSelected(int day, int month, int year) {
-                        activity.setDateData(day, month, year, MESSAGE_TYPE_END);
-                        labelDateEnd.setText("" + day + "." + (month + 1) + "." + year);
-                    }
-                });
-
-                newFragment.show(getActivity().getSupportFragmentManager(), "datePicker");
-
-            }
-        });
-
-        labelTimeStart.setOnClickListener(new View.OnClickListener() {
+        labelTime.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 DialogFragment newFragment = new TimePicker(new TimePicker.OnTimeSelectedListener() {
                     @Override
                     public void onTimeSelected(int hours, int minutes) {
-                        activity.setTimeData(hours, minutes, MESSAGE_TYPE_START);
-                        labelTimeStart.setText("" + addZero(hours) + ":" + addZero(minutes));
-                        btnOkStart.setVisibility(activity.isStartTimeSet() ? View.VISIBLE : View.GONE);
-                        Animators.animateButton(btnOkStart);
+                        activity.setTimeData(hours, minutes);
+                        activity.actualReport.setTime(activity.getTimeInMillis());
+                        labelTime.setText("" + addZero(hours) + ":" + addZero(minutes));
+                        btnOk.setVisibility(activity.isTimeSet() ? View.VISIBLE : View.GONE);
+                        Animators.animateButton(btnOk);
                     }
                 });
 
@@ -140,135 +113,100 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
             }
         });
 
-        labelTimeEnd.setOnClickListener(new View.OnClickListener() {
+        btnOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DialogFragment newFragment = new TimePicker(new TimePicker.OnTimeSelectedListener() {
-                    @Override
-                    public void onTimeSelected(int hours, int minutes) {
-                        activity.setTimeData(hours, minutes, MESSAGE_TYPE_END);
-                        labelTimeEnd.setText("" + addZero(hours) + ":" + addZero(minutes));
-                        btnOkEnd.setVisibility(activity.isEndTimeSet() ? View.VISIBLE : View.GONE);
-                        Animators.animateButton(btnOkEnd);
+                Log.d(LOG_TAG, "FragmentTimer - btnOk click" + LOG_UNDERLINED);
+                Animators.animateButtonClick(btnOk, true);
+
+                // Test zadání času
+                if (activity.checkTimeInput()) {
+                    long time = activity.getTimeInMillis();
+
+                    // Test jestli není nastavován report v minulosti
+                    if (activity.isInFuture(time)) {
+                        // Test jestli není nastaven report se stejným datem
+                        activity.getDataSource().getReportByTime(time, new OnReportLoadedListener() {
+                            @Override
+                            public void onReportLoaded(Report loadedReport) {
+                                //Nenalezeno žádné hlášení se stejným časem
+                                if (loadedReport == null) {
+                                    if (activity.actualReport == null) {
+                                        activity.actualReport = new Report();
+                                        activity.actualReport.setMessageType(rbStart.isChecked() ? MESSAGE_TYPE_START : MESSAGE_TYPE_END);
+                                    }
+
+                                    activity.actualReport.setTime(activity.getTimeInMillis());
+                                    activity.actualReport.setSentTime(WAITING);
+                                    activity.actualReport.setDeliveryTime(WAITING);
+                                    activity.actualReport.setAlarmRequestCode(activity.getTimerRequestCode());
+
+                                    activity.getDataSource().addReport(activity.actualReport, new OnReportAddedListener() {
+                                        @Override
+                                        public void onReportAdded(Report addedReport) {
+                                            Log.d(LOG_TAG, "Nové hlášení bylo přidáno a získávám jeho ID, které je: " + addedReport.getId());
+                                            activity.actualReport.setId(addedReport.getId());
+                                            activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
+                                            activity.setTimer(activity.actualReport.getTime(), activity.actualReport.getId());
+                                            activity.setTimerForError(activity.actualReport);
+
+                                            if (activity.fragmentMain != null) activity.fragmentMain.updateLastReportInfo();
+                                            activity.showFragment(FRAGMENT_MAIN_NAME);
+                                        }
+                                    });
+                                } else {
+                                    DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Na zadaný čas je již nastaveno jiné hlášení...").show();
+                                }
+                            }
+                        });
+                    } else {
+                        DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Nelze nastavit hlášení v minulosti...").show();
                     }
-                });
-
-                newFragment.show(getActivity().getSupportFragmentManager(), "timePicker");
-
-            }
-        });
-
-        btnOkStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Animators.animateButtonClick(btnOkStart, true);
-
-                if (activity.checkTimeInput(MESSAGE_TYPE_START)) {
-                    activity.setTimer(MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
-                    PrefsUtils.setAlarm(activity, false, MESSAGE_TYPE_START, ALARM_TYPE_BOTH);
                 }
+
             }
         });
 
-        btnOkEnd.setOnClickListener(new View.OnClickListener() {
+        rgStartEnd.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                Animators.animateButtonClick(btnOkEnd, true);
-
-                if (activity.checkTimeInput(MESSAGE_TYPE_END)) {
-                    activity.setTimer(MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
-                    PrefsUtils.setAlarm(activity, false, MESSAGE_TYPE_END, ALARM_TYPE_BOTH);
-                }
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (activity.actualReport == null) return;
+                activity.actualReport.setMessageType(checkedId == R.id.rbStart ? MESSAGE_TYPE_START : MESSAGE_TYPE_END);
             }
         });
 
-        btnCancelTimerStart.setOnClickListener(new View.OnClickListener() {
+        chbErrorAlarm.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                activity.cancelTimer(MESSAGE_TYPE_START);
-            }
-        });
-
-        btnCancelTimerEnd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                activity.cancelTimer(MESSAGE_TYPE_END);
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (activity.actualReport == null) return;
+                activity.actualReport.setErrorAlert(isChecked);
             }
         });
     }
 
     public void updateViews() {
-        Calendar calendarStart = Calendar.getInstance();
-        Calendar calendarEnd = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance();
 
-        if (activity.isStartTimeSet()) {
-            labelTimeStart.setText("" + addZero(activity.getHoursStart()) + ":" + addZero(activity.getMinutesStart()));
-            btnOkStart.setVisibility(View.VISIBLE);
+        if (activity.isTimeSet()) {
+            labelTime.setText("" + addZero(activity.getHours()) + ":" + addZero(activity.getMinutes()));
+            btnOk.setVisibility(View.VISIBLE);
 
-            calendarStart.set(
-                    activity.getYearStart(),
-                    activity.getMonthStart(),
-                    activity.getDayStart(),
-                    activity.getHoursStart(),
-                    activity.getMinutesStart());
+            calendar.set(
+                    activity.getYear(),
+                    activity.getMonth(),
+                    activity.getDay(),
+                    activity.getHours(),
+                    activity.getMinutes());
         } else {
-            labelTimeStart.setText("Nastavit čas");
-            btnOkStart.setVisibility(View.GONE);
+            labelTime.setText("Nastavit čas");
+            btnOk.setVisibility(View.GONE);
         }
 
-        if (activity.isEndTimeSet()) {
-            labelTimeEnd.setText("" + addZero(activity.getHoursEnd()) + ":" + addZero(activity.getMinutesEnd()));
-            btnOkEnd.setVisibility(View.VISIBLE);
-
-            calendarEnd.set(
-                    activity.getYearEnd(),
-                    activity.getMonthEnd(),
-                    activity.getDayEnd(),
-                    activity.getHoursEnd(),
-                    activity.getMinutesEnd());
-        } else {
-            labelTimeEnd.setText("Nastavit čas");
-            btnOkEnd.setVisibility(View.GONE);
-        }
-
-        SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  k:mm");
         SimpleDateFormat sdfDate = new SimpleDateFormat("d.M. yyyy");
 
-        long nextTimerStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
-        long nextTimerEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
-
-        labelDateStart.setText(sdfDate.format(calendarStart.getTimeInMillis()));
-        labelDateEnd.setText(sdfDate.format(calendarEnd.getTimeInMillis()));
-
-        labelNextTimerStart.setText(sdf.format(nextTimerStart));
-        labelNextTimerEnd.setText(sdf.format(nextTimerEnd));
-
-        showStartLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START));
-        showEndLayout(PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END));
-
-        chbNoSentStart.setChecked(PrefsUtils.isAlarm(activity, MESSAGE_TYPE_START, ALARM_TYPE_BOTH));
-        chbNoSentEnd.setChecked(PrefsUtils.isAlarm(activity, MESSAGE_TYPE_END, ALARM_TYPE_BOTH));
-
-        btnOkStart.setVisibility(activity.isStartTimeSet() ? View.VISIBLE : View.GONE);
-        btnOkEnd.setVisibility(activity.isEndTimeSet() ? View.VISIBLE : View.GONE);
-
-        /*
-        if (activity.isStartTimeSet()) {
-            labelTimeStart.setText("" + addZero(activity.getHoursStart()) + ":" + addZero(activity.getMinutesStart()));
-            btnOkStart.setVisibility(View.VISIBLE);
-        } else {
-            labelTimeStart.setText("Nastavit čas");
-            btnOkStart.setVisibility(View.GONE);
-        }
-
-        if (activity.isEndTimeSet()) {
-            labelTimeEnd.setText("" + addZero(activity.getHoursEnd()) + ":" + addZero(activity.getMinutesEnd()));
-            btnOkEnd.setVisibility(View.VISIBLE);
-        } else {
-            labelTimeEnd.setText("Nastavit čas");
-            btnOkEnd.setVisibility(View.GONE);
-        }
-        */
+        labelDate.setText(sdfDate.format(calendar.getTimeInMillis()));
+        chbErrorAlarm.setChecked(activity.actualReport.getRequestCodeForErrorAlarm() > NONE);
+        btnOk.setVisibility(activity.isTimeSet() ? View.VISIBLE : View.GONE);
     }
 
     public String addZero(int minutes) {
@@ -276,57 +214,8 @@ public class FragmentTimer extends Fragment implements AppConstants, CompoundBut
         else return "" + minutes;
     }
 
-    private void showStartLayout(boolean show) {
-        if (show) {
-            layoutStart. setVisibility(View.VISIBLE);
-            Animators.animateButton(chbNoSentStart);
-        } else {
-            layoutStart. setVisibility(View.GONE);
-        }
-    }
-
-    private void showEndLayout(boolean show) {
-        if (show) {
-            layoutEnd. setVisibility(View.VISIBLE);
-            Animators.animateButton(chbNoSentEnd);
-        } else {
-            layoutEnd. setVisibility(View.GONE);
-        }
-    }
-
-    @Override
-    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        switch (buttonView.getId()) {
-            case R.id.chbNoSentStart:
-                activity.getDataSource().updateReportValue();
-                break;
-            /*
-            case R.id.chbNoSentStart:
-                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_SENT);
-                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_START, ALARM_TYPE_NO_DELIVERED);
-
-                if (isChecked) {
-                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_SENT);
-                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_START, AppConstants.ERROR_TYPE_NO_DELIVERED);
-                } else {
-                    activity.cancelTimerForError(MESSAGE_TYPE_START);
-                }
-
-                break;
-            case R.id.chbNoSentEnd:
-                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_END, ALARM_TYPE_NO_SENT);
-                PrefsUtils.setAlarm(activity, isChecked, MESSAGE_TYPE_END, ALARM_TYPE_NO_DELIVERED);
-
-                if (isChecked) {
-                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_SENT);
-                    activity.setTimerForError(AppConstants.MESSAGE_TYPE_END, AppConstants.ERROR_TYPE_NO_DELIVERED);
-                }
-                else {
-                    activity.cancelTimerForError(MESSAGE_TYPE_END);
-                }
-
-                break;
-            */
-        }
+    private int getMessageType() {
+        if (rbStart.isChecked()) return MESSAGE_TYPE_START;
+        else return MESSAGE_TYPE_END;
     }
 }

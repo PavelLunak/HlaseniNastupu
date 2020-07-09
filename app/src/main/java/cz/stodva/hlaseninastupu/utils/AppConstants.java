@@ -4,6 +4,8 @@ public interface AppConstants {
 
     String LOG_TAG = "log_tag";
     String LOG_TAG_SMS = "log_tag_sms";
+    String LOG_UNDERLINED = "\n--------------------------------------------------------------------------------------";
+    String LOG_TAB = "------ ";
 
     String REQUEST_QUEUE_TAG = "HlaseniApp";
 
@@ -40,9 +42,6 @@ public interface AppConstants {
     int MESSAGE_TYPE_END = 2;
     int MESSAGE_TYPE_BOTH = 3;
 
-    int REPORT_TYPE_NEXT = 1;
-    int REPORT_TYPE_LAST = 2;
-
     int ALARM_TYPE_NO_SENT = 1;
     int ALARM_TYPE_NO_DELIVERED = 2;
     int ALARM_TYPE_BOTH = 3;
@@ -50,16 +49,14 @@ public interface AppConstants {
     int ERROR_TYPE_NO_SENT = 1;
     int ERROR_TYPE_NO_DELIVERED = 2;
 
-    int WAITING = 0;
-    int UNSUCCESFUL = -1;
+    int NONE = 0;
+    int WAITING = -1;
+    int UNSUCCESFUL = -2;
+    int CANCELED = -3;
 
     int SMS_PERMISSION_REQUEST = 1;
     int WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST = 2;
     int READ_CONTACTS_PERMISSION_REQUEST = 3;
 
-    int PREFS_DELETE_KEY = -123;    //Příznak, že danou hodnotu v prefs chci odstranit
-
-    String ACTION_SMS_SENT = "action_sms_sent";
-    String ACTION_SMS_DELIVERED = "action_sms_delivered";
     String ACTION_REPORT_RESULT = "action_report_result";
 }

@@ -13,7 +13,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -28,11 +27,15 @@ import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
+import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
+import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.receivers.MessageDeliveredReceiver;
 import cz.stodva.hlaseninastupu.receivers.MessageSentReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
+import cz.stodva.hlaseninastupu.utils.AppUtils;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 public class FragmentMain extends Fragment implements AppConstants {
@@ -42,11 +45,8 @@ public class FragmentMain extends Fragment implements AppConstants {
     PhoneStateListener phoneStateListener;
 
     TextView btnStartShift, btnEndShift, btnSetTimeForReport;
-    TextView labelLastTimerStart, labelLastTimerEnd;
-    TextView labelNextTimerStart, labelNextTimerEnd;
-    RelativeLayout layoutLastTimerStart, layoutLastTimerEnd;
-    ImageView imgLastSentStart, imgLastDeliveredSart, imgLastSentEnd, imgLastDeliveredEnd;
-    ImageView imgStartWarn, imgEndWarn;
+    TextView labelLastMessageType, labelLastReportTime, labelLastMessage;
+    ImageView imgLastSent, imgLastDelivered, imgLastWarn;
 
 
     @Override
@@ -70,21 +70,13 @@ public class FragmentMain extends Fragment implements AppConstants {
         btnEndShift = view.findViewById(R.id.btnEndShift);
         btnSetTimeForReport = view.findViewById(R.id.btnSetTimeForReport);
 
-        layoutLastTimerStart = view.findViewById(R.id.layoutLastTimerStart);
-        layoutLastTimerEnd = view.findViewById(R.id.layoutLastTimerEnd);
+        labelLastMessageType = view.findViewById(R.id.labelLastMessageType);
+        labelLastReportTime = view.findViewById(R.id.labelLastReportTime);
+        labelLastMessage = view.findViewById(R.id.labelLastMessage);
 
-        labelLastTimerStart = view.findViewById(R.id.labelLastTimerStart);
-        labelLastTimerEnd = view.findViewById(R.id.labelLastTimerEnd);
-        labelNextTimerStart = view.findViewById(R.id.labelNextTimerStart);
-        labelNextTimerEnd = view.findViewById(R.id.labelNextTimerEnd);
-
-        imgLastSentStart = view.findViewById(R.id.imgLastSentStart);
-        imgLastDeliveredSart = view.findViewById(R.id.imgLastDeliveredSart);
-        imgLastSentEnd = view.findViewById(R.id.imgLastSentEnd);
-        imgLastDeliveredEnd = view.findViewById(R.id.imgLastDeliveredEnd);
-
-        imgStartWarn = view.findViewById(R.id.imgStartWarn);
-        imgEndWarn = view.findViewById(R.id.imgEndWarn);
+        imgLastSent = view.findViewById(R.id.imgLastSent);
+        imgLastDelivered = view.findViewById(R.id.imgLastDelivered);
+        imgLastWarn = view.findViewById(R.id.imgLastWarn);
 
         return view;
     }
@@ -93,7 +85,7 @@ public class FragmentMain extends Fragment implements AppConstants {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        updateReportInfo();
+        updateLastReportInfo();
 
         btnStartShift.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,18 +114,6 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     private void requestSendReport(final int messageType) {
-        if (messageType == MESSAGE_TYPE_START) {
-            if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_START)) {
-                DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Nelze odesílat hlášení nástupu při nastaveném budíku na automatické hlášení nástupu").show();
-                return;
-            }
-        } else if (messageType ==MESSAGE_TYPE_END) {
-            if (PrefsUtils.isTimerSet(activity, MESSAGE_TYPE_END)) {
-                DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Nelze odesílat hlášení konce při nastaveném budíku na automatické hlášení konce").show();
-                return;
-            }
-        }
-
         final String phone = activity.getPhoneNumber();
         final String text = activity.getMessage(messageType);
 
@@ -164,107 +144,86 @@ public class FragmentMain extends Fragment implements AppConstants {
                 }).show();
     }
 
-    private void sendSms(String phone, String text, int messageType) {
-        // Vynulování příznaku úspěšného odeslání hlášení
-        PrefsUtils.saveIsReportSent(activity, false, messageType, REPORT_TYPE_LAST);
+    private void sendSms(final String phone, final String text, int messageType) {
 
-        // Vynulování příznaku úspěšného doručení hlášení
-        PrefsUtils.saveIsReportDelivered(activity, false, messageType, REPORT_TYPE_LAST);
+        activity.actualReport = new Report();
+        activity.actualReport.setMessageType(messageType);
+        activity.actualReport.setTime(new Date().getTime());
+        activity.actualReport.setSentTime(WAITING);
+        activity.actualReport.setDeliveryTime(WAITING);
 
-        // Uložení času hlášení
-        PrefsUtils.setReportTime(activity, (new Date()).getTime(), messageType, REPORT_TYPE_LAST);
-        updateReportInfo();
+        activity.getDataSource().addReport(activity.actualReport, new OnReportAddedListener() {
+            @Override
+            public void onReportAdded(Report addedReport) {
+                Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
+                sentIntent.putExtra("report_id", addedReport.getId());
 
-        Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
-        sentIntent.putExtra("message_type", messageType);
-        sentIntent.putExtra("report_type", REPORT_TYPE_LAST);
+                AppUtils.vibrate(activity);
 
-        PendingIntent pi1 = PendingIntent.getBroadcast(
-                activity,
-                messageType == MESSAGE_TYPE_START ? SENT_REQUEST_START : SENT_REQUEST_END,
-                sentIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pi1 = PendingIntent.getBroadcast(
+                        activity,
+                        1,
+                        sentIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
-        deliveredIntent.putExtra("message_type", messageType);
-        sentIntent.putExtra("report_type", REPORT_TYPE_LAST);
+                Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
+                deliveredIntent.putExtra("report_id", addedReport.getId());
 
-        PendingIntent pi2 = PendingIntent.getBroadcast(
-                activity,
-                messageType == MESSAGE_TYPE_START ? DELIVERED_REQUEST_START : DELIVERED_REQUEST_END,
-                deliveredIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pi2 = PendingIntent.getBroadcast(
+                        activity,
+                        2,
+                        deliveredIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT);
 
-        SmsManager sm = SmsManager.getDefault();
-        sm.sendTextMessage(phone, null, text, pi1, pi2);
+                SmsManager sm = SmsManager.getDefault();
+                sm.sendTextMessage(phone, null, text, pi1, pi2);
+
+            }
+        });
     }
 
-    public void updateReportInfo() {
+    public void updateLastReportInfo() {
         Log.d(LOG_TAG, "(1001) FragmentMain - updateReportInfo()");
 
-        SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy k:mm");
+        activity.getDataSource().getReportByMaxId(new OnReportLoadedListener() {
+            @Override
+            public void onReportLoaded(Report report) {
+                if (report == null) return;
 
-        long lastStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST);
-        long lastEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST);
+                Log.d(LOG_TAG, "last report id: " + report.getId());
 
-        long nextStart = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_START, REPORT_TYPE_NEXT);
-        long nextEnd = PrefsUtils.getReportTime(activity, MESSAGE_TYPE_END, REPORT_TYPE_NEXT);
+                labelLastMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
+                labelLastReportTime.setText(AppUtils.timeToString(report.getTime()));
 
-        if (lastStart > -1) {
-            labelLastTimerStart.setText(sdf.format(lastStart));
+                if (report.getMessage() == null) {
+                    labelLastMessage.setVisibility(View.GONE);
+                } else {
+                    labelLastMessage.setVisibility(View.VISIBLE);
+                    labelLastMessage.setText(report.getMessage());
+                }
 
-            showWarn(
-                    MESSAGE_TYPE_START,
-                    !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST)
-                            || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST));
-        } else {
-            labelLastTimerStart.setText("Nebylo zatím nastaveno");
-            showWarn(MESSAGE_TYPE_START, false);
-        }
+                boolean isSent = report.getSentTime() > NONE;
+                boolean isDelivered = report.getDeliveryTime() > NONE;
 
-        if (lastEnd > -1) {
-            labelLastTimerEnd.setText(sdf.format(lastEnd));
+                // Pokud je čas alarmu staršího data než je datum aktuální...
+                if (report.getTime() < new Date().getTime()) {
+                    if (report.getTime() != CANCELED) {
+                        showWarn(!isSent || !isDelivered);
+                    }
+                }
 
-            showWarn(
-                    MESSAGE_TYPE_END,
-                    !PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)
-                            || !PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST));
-        } else {
-            labelLastTimerEnd.setText("Nebylo zatím nastaveno");
-            showWarn(MESSAGE_TYPE_END, false);
-        }
+                if (isSent) imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                else imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
-        if (nextStart > -1) labelNextTimerStart.setText(sdf.format(nextStart));
-        else labelNextTimerStart.setText("Není nastaveno");
-
-        if (nextEnd > -1) labelNextTimerEnd.setText(sdf.format(nextEnd));
-        else labelNextTimerEnd.setText("Není nastaveno");
-
-
-        if (PrefsUtils.isReportSent(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST)) imgLastSentStart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-        else imgLastSentStart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-
-        if (PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_START, REPORT_TYPE_LAST)) imgLastDeliveredSart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-        else imgLastDeliveredSart.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-
-        if (PrefsUtils.isReportSent(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) imgLastSentEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-        else imgLastSentEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-
-        if (PrefsUtils.isReportDelivered(activity, MESSAGE_TYPE_END, REPORT_TYPE_LAST)) imgLastDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-        else imgLastDeliveredEnd.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+                if (isDelivered) imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                else imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+            }
+        });
     }
 
-    public void showWarn(int messageType, boolean show) {
+    public void showWarn(boolean show) {
         Log.d(LOG_TAG, "(1002) FragmentMain - showWarn()");
-
-        if (messageType == MESSAGE_TYPE_START) {
-            imgStartWarn.setVisibility(show ? View.VISIBLE : View.GONE);
-        } else if (messageType == MESSAGE_TYPE_END) {
-            imgEndWarn.setVisibility(show ? View.VISIBLE : View.GONE);
-        } else {
-            imgStartWarn.setVisibility(show ? View.VISIBLE : View.GONE);
-            imgEndWarn.setVisibility(show ? View.VISIBLE : View.GONE);
-        }
+        imgLastWarn.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     public void initPhoneStateListener(final String phone, final String text, final int messageType) {
@@ -325,20 +284,5 @@ public class FragmentMain extends Fragment implements AppConstants {
 
     private void showPhoneStateError(String message) {
         DialogInfo.createDialog(activity).setTitle("Chyba").setMessage(message).show();
-    }
-
-    public ImageView getImgResult(int imgId) {
-        switch (imgId) {
-            case R.id.imgLastSentStart:
-                return imgLastSentStart;
-            case R.id.imgLastDeliveredSart:
-                return imgLastDeliveredSart;
-            case R.id.imgLastSentEnd:
-                return imgLastSentEnd;
-            case R.id.imgLastDeliveredEnd:
-                return imgLastDeliveredEnd;
-        }
-
-        return null;
     }
 }

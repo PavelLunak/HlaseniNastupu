@@ -75,6 +75,7 @@ public class PrefsUtils implements AppConstants {
         }
     }
 
+    /*
     public static void setReportTime(Context context, long time, int messageType, int reportType) {
         Log.d(LOG_TAG_SMS, "(905) PrefsUtils - setReportTime(" +
                 AppUtils.messageTypeToString(messageType) +
@@ -263,6 +264,7 @@ public class PrefsUtils implements AppConstants {
 
         return true;
     }
+    */
 
     // ---------- PŘÍZNAK DEFINITIVNÍHO ODMÍTNUTÍ OPRÁVNĚNÍ ----------------------------------------
 
@@ -294,6 +296,7 @@ public class PrefsUtils implements AppConstants {
 
     // ---------- PŘÍZNAK O NASTAVENÍ ALARMU NEODESLÁNÍ NEBO NEDORUČENÍ HLÁŠENÍ --------------------
 
+    /*
     public static void setAlarm(Context context, boolean isAlarm, int messageType, int alarmType) {
         Log.d(LOG_TAG_SMS,
                 "(938) PrefsUtils - setAlarm(" +
@@ -369,4 +372,5 @@ public class PrefsUtils implements AppConstants {
 
         return false;
     }
+    */
 }

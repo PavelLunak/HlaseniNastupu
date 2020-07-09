@@ -1,6 +1,32 @@
 package cz.stodva.hlaseninastupu.utils;
 
+import android.content.Context;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+
+import java.text.SimpleDateFormat;
+
 public class AppUtils implements AppConstants {
+
+    public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  k:mm");
+
+    public static String timeToString(long time) {
+        if (time == NONE) return "NONE";
+        if (time == WAITING) return "WAITING";
+        if (time == UNSUCCESFUL) return "UNSUCCESFUL";
+        if (time == CANCELED) return "CANCELED";
+        return sdf.format(time);
+    }
+
+    public static void vibrate(Context context) {
+        Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            v.vibrate(VibrationEffect.createOneShot(150, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            v.vibrate(150);
+        }
+    }
 
     public static String messageTypeToString(int messageType) {
         switch (messageType) {
@@ -10,17 +36,6 @@ public class AppUtils implements AppConstants {
                 return "MESSAGE_TYPE_END";
             case MESSAGE_TYPE_BOTH:
                 return "MESSAGE_TYPE_BOTH";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
-    public static String reportTypeToString(int messageType) {
-        switch (messageType) {
-            case REPORT_TYPE_LAST:
-                return "REPORT_TYPE_LAST";
-            case REPORT_TYPE_NEXT:
-                return "REPORT_TYPE_NEXT";
             default:
                 return "UNKNOWN";
         }

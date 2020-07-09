@@ -48,6 +48,16 @@
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/ic_list" />
 
+        <ImageView
+            android:id="@+id/imgClearDatabase"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/labelToolbar"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_clear_db" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
