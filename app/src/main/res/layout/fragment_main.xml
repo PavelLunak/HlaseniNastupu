@@ -136,6 +136,7 @@
                     android:layout_alignBottom="@id/labelLastReportTime"
                     android:layout_centerVertical="false"
                     android:gravity="center_vertical"
+                    android:padding="10dp"
                     android:text="Nástup: "
                     android:textColor="#FFE500" />
 

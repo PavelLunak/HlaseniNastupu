@@ -11,11 +11,17 @@ public class AppUtils implements AppConstants {
 
     public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  k:mm");
 
-    public static String timeToString(long time) {
+    public static String timeToString(long time, int reportPhase) {
         if (time == NONE) return "NONE";
-        if (time == WAITING) return "WAITING";
-        if (time == UNSUCCESFUL) return "UNSUCCESFUL";
-        if (time == CANCELED) return "CANCELED";
+
+        if (time == WAITING) {
+            if (reportPhase == REPORT_PHASE_SEND) return "Čekání na odeslání hlášení...";
+            if (reportPhase == REPORT_PHASE_DELIVERY) return "Čekání na potvrzení doručení hlášení...";
+        }
+
+        if (time == UNSUCCESFUL) return "Chyba...";
+        if (time == CANCELED) return "Zrušeno...";
+
         return sdf.format(time);
     }
 

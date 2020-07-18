@@ -58,6 +58,7 @@ import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
+import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
@@ -88,6 +89,10 @@ public class MainActivity extends AppCompatActivity implements
     public FragmentSettings fragmentSettings;
     public FragmentItems fragmentItems;
 
+    int pagesCount;
+    int itemsCount;
+    int page = 1;
+
     int day = -1;
     int month = -1;
     int year = -1;
@@ -115,14 +120,7 @@ public class MainActivity extends AppCompatActivity implements
             int reportId = intent.getIntExtra("report_id", -1);
             Log.d(AppConstants.LOG_TAG, "(103) report id: " + reportId);
 
-            getDataSource().getAllItems(new OnItemsLoadedListener() {
-                @Override
-                public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                    items = new ArrayList<>(loadedItems);
-                    if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                    if (fragmentMain != null) fragmentMain.updateLastReportInfo();
-                }
-            });
+            updateItems(null);
         }
     };
 
@@ -138,6 +136,10 @@ public class MainActivity extends AppCompatActivity implements
         outState.putInt("yearStart", year);
         outState.putInt("hoursStart", hours);
         outState.putInt("minutesStart", minutes);
+
+        outState.putInt("pagesCount", pagesCount);
+        outState.putInt("itemsCount", itemsCount);
+        outState.putInt("page", page);
     }
 
     @Override
@@ -151,6 +153,10 @@ public class MainActivity extends AppCompatActivity implements
         year = savedInstanceState.getInt("yearStart");
         hours = savedInstanceState.getInt("hoursStart");
         minutes = savedInstanceState.getInt("minutesStart");
+
+        pagesCount = savedInstanceState.getInt("pagesCount");
+        itemsCount = savedInstanceState.getInt("itemsCount");
+        page = savedInstanceState.getInt("page");
     }
 
     @Override
@@ -213,19 +219,14 @@ public class MainActivity extends AppCompatActivity implements
                                 getDataSource().clearTable(new OnDatabaseClearedListener() {
                                     @Override
                                     public void onDatabaseCleared() {
-                                        getDataSource().getAllItems(new OnItemsLoadedListener() {
-                                            @Override
-                                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                                                items = new ArrayList<>(loadedItems);
-                                                if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                                                if (fragmentMain != null) fragmentMain.updateLastReportInfo();
-                                            }
-                                        });
+                                        updateItems(null);
                                     }
                                 });
                             }
 
-                            @Override public void noSelected() {}
+                            @Override
+                            public void noSelected() {
+                            }
                         })
                         .show();
             }
@@ -261,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements
                                     mediaPlayer.start();
 
                                     DialogInfo.createDialog(MainActivity.this)
-                                            .setTitle(AppUtils.timeToString(loadedReport.getTime()))
+                                            .setTitle(AppUtils.timeToString(loadedReport.getTime(), REPORT_PHASE_NONE))
                                             .setMessage(loadedReport.getMessage())
                                             .setListener(new DialogInfo.OnDialogClosedListener() {
                                                 @Override
@@ -295,18 +296,8 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
 
         onBackStackChanged();
-        if (fragmentTimer != null) fragmentTimer.updateViews();
-
-        getDataSource().getAllItems(new OnItemsLoadedListener() {
-            @Override
-            public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                items = new ArrayList<>(loadedItems);
-
-                if (fragmentItems != null) {
-                    fragmentItems.updateAdapter();
-                }
-            }
-        });
+        updateFragments();
+        updateItems(null);
     }
 
     @Override
@@ -356,6 +347,7 @@ public class MainActivity extends AppCompatActivity implements
             updateToolbarText(FRAGMENT_ITEMS);
             updateToolbarImage(R.drawable.ic_back);
             imgItems.setVisibility(View.GONE);
+            fragmentItems.updatePageInfo();
         }
     }
 
@@ -413,6 +405,77 @@ public class MainActivity extends AppCompatActivity implements
         return null;
     }
 
+    // Přidá do databáze hlášení a aktualizuje seznam stažených hlášení
+    public void addReportToDatabase(final Report report, final OnReportAddedListener addListener) {
+        getDataSource().addReport(report, new OnReportAddedListener() {
+            @Override
+            public void onReportAdded(final Report addedReport) {
+                updateItems(new OnItemsLoadedListener() {
+                    @Override
+                    public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                        if (addListener != null) addListener.onReportAdded(addedReport);
+                    }
+                });
+            }
+        });
+    }
+
+    public void updateItems(final OnItemsLoadedListener onItemsLoadedListener) {
+        Log.d(LOG_TAG_PAGES, "updateItems()");
+        getDataSource().getItemsCount(new OnItemsCountCheckedListener() {
+            @Override
+            public void onItemsCountChecked(int count) {
+                itemsCount = count;
+                pagesCount = calculatePagesCount();
+
+                Log.d(LOG_TAG_PAGES, "itemsCount: " + itemsCount);
+                Log.d(LOG_TAG_PAGES, "pagesCount: " + pagesCount);
+                Log.d(LOG_TAG_PAGES, "page: " + page);
+
+                getDataSource().getPage(getOffset(), ITEMS_PER_PAGE, new OnItemsLoadedListener() {
+                    @Override
+                    public void onItemsLoaded(final ArrayList<Report> loadedItems) {
+                        items = new ArrayList<>(loadedItems);
+                        updateFragments();
+                        if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(loadedItems);
+                    }
+                });
+            }
+        });
+    }
+
+    public void updateFragments() {
+        if (fragmentItems != null) fragmentItems.updateFragment();
+        if (fragmentMain != null) fragmentMain.updateLastReportInfo();
+        if (fragmentTimer != null) fragmentTimer.updateViews();
+    }
+
+    public int calculatePagesCount() {
+        if (itemsCount <= 0) return 0;
+
+        if (itemsCount % ITEMS_PER_PAGE == 0) return itemsCount / ITEMS_PER_PAGE;
+        else return (itemsCount / ITEMS_PER_PAGE) + 1;
+    }
+
+    public int getOffset() {
+        if (page <= 1) return 0;
+        else return (page * ITEMS_PER_PAGE) - ITEMS_PER_PAGE;
+    }
+
+    public void pageUp() {
+        if (page < pagesCount) {
+            page += 1;
+            updateItems(null);
+        }
+    }
+
+    public void pageDown() {
+        if (page > 1) {
+            page -= 1;
+            updateItems(null);
+        }
+    }
+
     public void setTimeData(int hours, int minutes) {
         this.hours = hours;
         this.minutes = minutes;
@@ -447,117 +510,83 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     // Nastavení časovače pro odeslání hlášení
-    public void setTimer(final long time, final int reportId) {
+    public void setTimer(final Report report) {
 
         Log.d(LOG_TAG_SMS, "(112) MainActivity - setTimer()");
 
-        // Obnovení seznamu hlášení z databáze
-        getDataSource().getAllItems(new OnItemsLoadedListener() {
-            @Override
-            public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                items = new ArrayList<>(loadedItems);
+        getDataSource().updateReportValue(
+                report.getId(),
+                new String[]{
+                        DbHelper.COLUMN_SENT,
+                        DbHelper.COLUMN_DELIVERED,
+                        DbHelper.COLUMN_REQUEST_CODE,
+                        DbHelper.COLUMN_ERROR_REQUEST_CODE},
+                new long[]{
+                        WAITING,
+                        WAITING,
+                        getTimerRequestCode(),
+                        getTimerRequestCode()},
+                new OnReportUpdatedListener() {
+                    @Override
+                    public void onReportUpdated(final Report updatedReport) {
+                        updateItems(new OnItemsLoadedListener() {
+                            @Override
+                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                updateFragments();
 
-                if (fragmentTimer != null) fragmentTimer.updateViews();
-                if (fragmentMain != null) fragmentMain.updateLastReportInfo();
+                                // NASTAVENÍ ČASOVAČŮ
+                                // Časovač pro odeslání hlášení ------------------------------------------------------------
+                                Intent intentTimer = new Intent(MainActivity.this, TimerReceiver.class);
+                                intentTimer.putExtra("report_id", updatedReport.getId());
 
-                Intent intent = new Intent(MainActivity.this, TimerReceiver.class);
-                intent.putExtra("report_id", reportId);
+                                PendingIntent pendingIntentTimer = PendingIntent.getBroadcast(
+                                        MainActivity.this,
+                                        updatedReport.getAlarmRequestCode(),
+                                        intentTimer,
+                                        PendingIntent.FLAG_UPDATE_CURRENT);
 
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                        MainActivity.this,
-                        actualReport.getAlarmRequestCode(),
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
+                                AlarmManager amTimer = (AlarmManager) getSystemService(ALARM_SERVICE);
+                                amTimer.set(
+                                        AlarmManager.RTC_WAKEUP,
+                                        updatedReport.getTime(),
+                                        pendingIntentTimer);
 
-                AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-                am.set(AlarmManager.RTC_WAKEUP, time, pendingIntent);
-            }
-        });
+                                // Časovač pro kontrolu doručení hlášení ---------------------------------------------------
+                                Intent intentTimerCheckError = new Intent(MainActivity.this, TimerReceiver.class);
+                                intentTimerCheckError.putExtra("report_id", updatedReport.getId());
+
+                                //Příznak pro Receiver, že jde o budík pro kontrolu odeslání nebo doručení hlášení
+                                intentTimerCheckError.putExtra("alarm_check_error", 1);
+
+                                PendingIntent pendingIntentTimerCheckError = PendingIntent.getBroadcast(
+                                        MainActivity.this,
+                                        updatedReport.getRequestCodeForErrorAlarm(),
+                                        intentTimerCheckError,
+                                        PendingIntent.FLAG_UPDATE_CURRENT);
+
+                                AlarmManager amCheckError = (AlarmManager) getSystemService(ALARM_SERVICE);
+                                amCheckError.set(
+                                        AlarmManager.RTC_WAKEUP,
+                                        updatedReport.getTime() + TIME_FOR_CONTROL,
+                                        pendingIntentTimerCheckError);
+                            }
+                        });
+                    }
+                });
     }
 
-    // Zrušení časovače pro odeslání hlášení
-    public void cancelTimer(final Report report) {
-
-        Log.d(LOG_TAG_SMS, "(113) MainActivity - cancelTimer()");
-
-        Intent intent = new Intent(this, TimerReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                this,
-                report.getAlarmRequestCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-
-        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.cancel(pendingIntent);
-
-        if (report.getId() != NONE) {
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_REQUEST_CODE,
-                    NONE,
-                    new OnReportUpdatedListener() {
-                        @Override
-                        public void onReportUpdated(Report updatedReport) {
-                            report.setAlarmRequestCode(NONE);
-                            if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                        }
-                    });
-
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_TIME,
-                    CANCELED,
-                    new OnReportUpdatedListener() {
-                        @Override
-                        public void onReportUpdated(Report updatedReport) {
-                            report.setTime(CANCELED);
-                            if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                        }
-                    });
-
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_SENT,
-                    NONE,
-                    new OnReportUpdatedListener() {
-                        @Override
-                        public void onReportUpdated(Report updatedReport) {
-                            report.setSentTime(NONE);
-                            if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                        }
-                    });
-
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_DELIVERED,
-                    NONE,
-                    new OnReportUpdatedListener() {
-                        @Override
-                        public void onReportUpdated(Report updatedReport) {
-                            report.setDeliveryTime(NONE);
-                            if (fragmentItems != null) fragmentItems.getAdapter().notifyDataSetChanged();
-                        }
-                    });
-        }
-
-        if (fragmentTimer != null) fragmentTimer.updateViews();
-        if (fragmentMain != null) fragmentMain.updateLastReportInfo();
-    }
-
+    /*
     // Nastavení časovače pro kontrolu odeslání a doručení následujícího hlášení
     public void setTimerForError(final Report report) {
 
         Log.d(LOG_TAG_SMS, "(114) MainActivity - setTimerForError()");
+        Log.d(LOG_TAG_SMS, LOG_TAB + "report ID: " + report.getId());
 
-        // Pokud má hlášení ID, je již uložen v databázi a je možné ho tam aktualizovat. V opačném
-        // případě jde o nové hlášení, které bude do databáze teprve přidáno
-        if (report.getId() != NONE) {
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_ERROR_REQUEST_CODE,
-                    report.getRequestCodeForErrorAlarm(),
-                    null);
-        }
+        getDataSource().updateReportValue(
+                report.getId(),
+                new String[]{DbHelper.COLUMN_ERROR_REQUEST_CODE},
+                new long[]{report.getRequestCodeForErrorAlarm()},
+                null);
 
         Intent intent = new Intent(MainActivity.this, TimerReceiver.class);
         intent.putExtra("report_id", report.getId());
@@ -574,10 +603,69 @@ public class MainActivity extends AppCompatActivity implements
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.set(
                 AlarmManager.RTC_WAKEUP,
-                report.getTime() + 20000,//getTimeForErrorAlarm(messageType, REPORT_TYPE_NEXT),
+                report.getTime() + TIME_FOR_CONTROL,
                 pendingIntent);
     }
+    */
 
+    // Zrušení časovače pro odeslání hlášení
+    // updateDatabase: aktualizace není potřeba, když bude hlášení následně smazáno z databáze
+    public void cancelTimer(final Report report, boolean updateDatabase) {
+
+        Log.d(LOG_TAG_SMS, "(113) MainActivity - cancelTimer()");
+
+        // ZRUŠENÍ ČASOVAČŮ
+        // Časovač pro odeslání hlášení ------------------------------------------------------------
+        Intent intentTimer = new Intent(this, TimerReceiver.class);
+        PendingIntent pendingIntentTimer = PendingIntent.getBroadcast(
+                this,
+                report.getAlarmRequestCode(),
+                intentTimer,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager amTimer = (AlarmManager) getSystemService(ALARM_SERVICE);
+        amTimer.cancel(pendingIntentTimer);
+
+        // Časovač pro kontrolu doručení hlášení ---------------------------------------------------
+        Intent intentTimerCheckError = new Intent(this, TimerReceiver.class);
+        PendingIntent pendingIntentTimerCheckError = PendingIntent.getBroadcast(
+                this,
+                report.getRequestCodeForErrorAlarm(),
+                intentTimerCheckError,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.cancel(pendingIntentTimerCheckError);
+
+        if (!updateDatabase) return;
+
+        // Aktualizace hlášení v databázi
+        getDataSource().updateReportValue(
+                report.getId(),
+                new String[]{
+                        DbHelper.COLUMN_REQUEST_CODE,
+                        DbHelper.COLUMN_ERROR_REQUEST_CODE,
+                        DbHelper.COLUMN_SENT,
+                        DbHelper.COLUMN_DELIVERED},
+                new long[]{
+                        NONE,
+                        NONE,
+                        CANCELED,
+                        CANCELED},
+                new OnReportUpdatedListener() {
+                    @Override
+                    public void onReportUpdated(Report updatedReport) {
+                        updateItems(new OnItemsLoadedListener() {
+                            @Override
+                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                updateFragments();
+                            }
+                        });
+                    }
+                });
+    }
+
+    /*
     public void cancelTimerForError(final Report report) {
 
         Log.d(LOG_TAG_SMS, "(115) MainActivity - cancelTimerForError()");
@@ -592,21 +680,47 @@ public class MainActivity extends AppCompatActivity implements
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.cancel(pendingIntent);
 
-        // Pokud má hlášení ID, je již uložen v databázi a je možné ho tam aktualizovat. V opačném
-        // případě jde o nové hlášení, které bude do databáze teprve přidáno. Aktualizace v databázi
-        // (a změna requestCode pro alarm erroru na NONE) musí být až za zrušením alarmu.
-        if (report.getId() != NONE) {
-            getDataSource().updateReportValue(
-                    report.getId(),
-                    DbHelper.COLUMN_ERROR_REQUEST_CODE,
-                    NONE,
-                    new OnReportUpdatedListener() {
-                        @Override
-                        public void onReportUpdated(Report updatedReport) {
-                            report.setRequestCodeForErrorAlarm(NONE);
-                        }
-                    });
-        }
+        getDataSource().updateReportValue(
+                report.getId(),
+                new String[]{DbHelper.COLUMN_ERROR_REQUEST_CODE},
+                new long[]{NONE},
+                new OnReportUpdatedListener() {
+                    @Override
+                    public void onReportUpdated(Report updatedReport) {
+                        updateItems(new OnItemsLoadedListener() {
+                            @Override
+                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                updateFragments();
+                            }
+                        });
+                    }
+                });
+    }
+    */
+
+    public void updateErrorAlert(Report report, final boolean isErrorAlert) {
+        report.setErrorAlert(isErrorAlert);
+
+        getDataSource().updateReportValue(
+                report.getId(),
+                new String[]{
+                        DbHelper.COLUMN_IS_ERROR_ALERT},
+                new long[]{
+                        isErrorAlert ? 1 : 0},
+                new OnReportUpdatedListener() {
+                    @Override
+                    public void onReportUpdated(Report updatedReport) {
+                        updateItems(new OnItemsLoadedListener() {
+                            @Override
+                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                updateFragments();
+
+                                if (isErrorAlert) Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení ZAPNUTO...", Toast.LENGTH_LONG).show();
+                                else Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení VYPNUTO...", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+                });
     }
 
     private void checkSettings() {
@@ -757,9 +871,12 @@ public class MainActivity extends AppCompatActivity implements
     public void showDialogExplanation(final int permissionType) {
         String message = "";
 
-        if (permissionType == PERMISSION_SMS) message = getResources().getString(R.string.permission_explanation_sms);
-        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE) message = getResources().getString(R.string.permission_explanation_write_external_storage);
-        if (permissionType == PERMISSION_READ_CONTACTS) message = getResources().getString(R.string.permission_explanation_read_contacts_storage);
+        if (permissionType == PERMISSION_SMS)
+            message = getResources().getString(R.string.permission_explanation_sms);
+        if (permissionType == PERMISSION_WRITE_EXTERNAL_STORAGE)
+            message = getResources().getString(R.string.permission_explanation_write_external_storage);
+        if (permissionType == PERMISSION_READ_CONTACTS)
+            message = getResources().getString(R.string.permission_explanation_read_contacts_storage);
 
         DialogYesNo.createDialog(this)
                 .setTitle("Vysvětlení")
@@ -880,7 +997,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public TimerRequestCodeGenerator getTimerRequestCodeGenerator() {
-        if (timerRequestCodeGenerator == null) timerRequestCodeGenerator = new TimerRequestCodeGenerator(this);
+        if (timerRequestCodeGenerator == null)
+            timerRequestCodeGenerator = new TimerRequestCodeGenerator(this);
         return timerRequestCodeGenerator;
     }
 
@@ -929,6 +1047,30 @@ public class MainActivity extends AppCompatActivity implements
         this.minutes = minutes;
     }
 
+    public int getPagesCount() {
+        return pagesCount;
+    }
+
+    public void setPagesCount(int pagesCount) {
+        this.pagesCount = pagesCount;
+    }
+
+    public int getItemsCount() {
+        return itemsCount;
+    }
+
+    public void setItemsCount(int itemsCount) {
+        this.itemsCount = itemsCount;
+    }
+
+    public int getPage() {
+        return page;
+    }
+
+    public void setPage(int page) {
+        this.page = page;
+    }
+
     private void initStetho() {
         Stetho.InitializerBuilder initializerBuilder = Stetho.newInitializerBuilder(this);
         initializerBuilder.enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this));
@@ -938,8 +1080,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void checkVersion() {
-        Log.d("SGSGSGS", "checkVersion()");
-
         RequestQueue queue = Volley.newRequestQueue(this);
         String url = "http://stodva.cz/Hlaseni/index.php?version_check=1.01";
 
@@ -947,12 +1087,7 @@ public class MainActivity extends AppCompatActivity implements
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d("SGSGSGS", "onResponse()");
-                        Log.d("SGSGSGS", "response: " + response);
-
                         if (!response.equals(getAppVersion())) {
-                            Log.d("SGSGSGS", "K dispozici je novější verze aplikace.");
-
                             DialogYesNo.createDialog(MainActivity.this)
                                     .setTitle("Aktualizace")
                                     .setMessage("K dispozici je aktualiuace aplikace. Stáhnout a nainstalovat novou verzi?")
@@ -962,18 +1097,17 @@ public class MainActivity extends AppCompatActivity implements
                                             downloadApp();
                                         }
 
-                                        @Override public void noSelected() {}
+                                        @Override
+                                        public void noSelected() {
+                                        }
                                     })
                                     .show();
-                        } else {
-                            Log.d("SGSGSGS", "Je nainstalovaná poslední verze.");
                         }
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d("SGSGSGS", "onErrorResponse()");
-                Log.d("SGSGSGS", "error: " + error.getMessage());
+
             }
         });
 
@@ -982,10 +1116,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public static void installApplication(Context context, String filePath) {
-        Log.d("SGSGSGS", "installApplication()");
-
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        //intent.setDataAndType(Uri.fromFile(new File(filePath)), "application/vnd.android.package-archive");
         intent.setDataAndType(uriFromFile(context, new File(filePath)), "application/vnd.android.package-archive");
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);

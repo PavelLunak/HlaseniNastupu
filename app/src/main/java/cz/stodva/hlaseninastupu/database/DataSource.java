@@ -87,6 +87,8 @@ public class DataSource implements AppConstants {
         values.put(DbHelper.COLUMN_ERROR_REQUEST_CODE, String.valueOf(report.getRequestCodeForErrorAlarm()));
         values.put(DbHelper.COLUMN_IS_ERROR_ALERT, report.isErrorAlert() ? "1" : "0");
         values.put(DbHelper.COLUMN_MESSAGE, report.getMessage());
+        values.put(DbHelper.COLUMN_IS_FAILED, report.isFailed() ? "1" : "0");
+        values.put(DbHelper.COLUMN_IS_DELIVERED, report.isDelivered() ? "1" : "0");
 
         long insertId = database.insert(DbHelper.TABLE_REPORTS, null, values);
 
@@ -160,7 +162,7 @@ public class DataSource implements AppConstants {
     }
 
     public void getReportByTime(long reportTime, OnReportLoadedListener listener) {
-        Log.d(LOG_TAG, "DataSource - getReportByTime(reportTime: " + AppUtils.timeToString(reportTime) + ")" + LOG_UNDERLINED);
+        Log.d(LOG_TAG, "DataSource - getReportByTime()" + LOG_UNDERLINED);
 
         open();
         Report toReturn = null;
@@ -175,20 +177,27 @@ public class DataSource implements AppConstants {
         if (listener != null) listener.onReportLoaded(toReturn);
     }
 
-    public void updateReportValue(int reportId, String valueType, long value, OnReportUpdatedListener listener) {
-        Log.d(LOG_TAG, "DataSource - updateReportValue(reportId: " + reportId + ", valueType: " + valueType + ")" + LOG_UNDERLINED);
+    public void updateReportValue(int reportId, String[] valueTypes, long[] values, OnReportUpdatedListener listener) {
+        Log.d(LOG_TAG, "DataSource - updateReportValue(reportId: " + reportId + ")" + LOG_UNDERLINED);
 
         if (reportId < 0) {
             if (listener != null) listener.onReportUpdated(null);
             return;
         }
 
+        if (valueTypes == null) listener.onReportUpdated(null);
+        if (values == null) listener.onReportUpdated(null);
+        if (valueTypes.length != values.length) listener.onReportUpdated(null);
+
         if (database == null) open();
 
-        ContentValues values = new ContentValues();
-        values.put(valueType, String.valueOf(value));
+        ContentValues cv = new ContentValues();
 
-        int rowsUpdated = database.update(DbHelper.TABLE_REPORTS, values, DbHelper.COLUMN_ID + " = ?", new String[] {String.valueOf(reportId)});
+        for (int i = 0; i < valueTypes.length; i ++) {
+            cv.put(valueTypes[i], String.valueOf(values[i]));
+        }
+
+        int rowsUpdated = database.update(DbHelper.TABLE_REPORTS, cv, DbHelper.COLUMN_ID + " = ?", new String[] {String.valueOf(reportId)});
 
         final Cursor cursor = database.query(
                 DbHelper.TABLE_REPORTS,
@@ -281,6 +290,42 @@ public class DataSource implements AppConstants {
         }
     }
 
+    public void getPage(int offset, int itemsPerPage, OnItemsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getAllItems()" + LOG_UNDERLINED);
+        Log.d(LOG_TAG_PAGES, "DataSource - getAllItems()");
+        Log.d(LOG_TAG_PAGES, "offset: " + offset);
+        open();
+        ArrayList<Report> toReturn = new ArrayList<>();
+        Report report;
+        Cursor cursor;
+
+        try {
+            cursor = database.query(
+                    DbHelper.TABLE_REPORTS,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    DbHelper.COLUMN_TIME + " DESC",
+                    "" + offset + ", " + itemsPerPage);
+
+            cursor.moveToFirst();
+
+            for(int i = 0, count = cursor.getCount(); i < count; i ++) {
+                report = cursorToReport(cursor);
+                toReturn.add(report);
+                if(cursor.isLast()) break;
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        } catch (Exception e) {
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        }
+    }
+
     private Report cursorToReport(Cursor cursor) {
         Log.d(LOG_TAG, "DataSource - cursorToReport()" + LOG_UNDERLINED);
         Report report = new Report();
@@ -294,6 +339,8 @@ public class DataSource implements AppConstants {
         report.setRequestCodeForErrorAlarm(Integer.parseInt(cursor.getString(6)));
         report.setErrorAlert(cursor.getString(7).equals("1"));
         report.setMessage(cursor.getString(8));
+        report.setFailed(cursor.getString(9).equals("1"));
+        report.setDelivered(cursor.getString(10).equals("1"));
 
         if (report != null) Log.d(LOG_TAG, LOG_TAB + report.toString());
         else Log.d(LOG_TAG, LOG_TAB + "NULL");

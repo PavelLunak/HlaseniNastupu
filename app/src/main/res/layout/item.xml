@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="10dp"
-    android:background="@drawable/bg_item_end"
+    android:background="@drawable/bg_item_old_start"
     android:padding="10dp">
 
     <TextView
@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Nástup"
-        android:textColor="@android:color/white"
+        android:textColor="@color/old_color_item"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,7 +25,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="25.6.2020  3:47"
-        android:textColor="@android:color/white"
+        android:textColor="@color/old_color_item"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,8 +36,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:padding="3dp"
         android:text="Odesláno:"
-        android:textColor="@color/text_color_item"
+        android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/labelMessageType" />
 
@@ -45,8 +46,9 @@
         android:id="@+id/textView11"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:padding="3dp"
         android:text="Doručeno:"
-        android:textColor="@color/text_color_item"
+        android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView10" />
 
@@ -55,8 +57,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
+        android:padding="3dp"
         android:text="25.6.2020  3:48"
-        android:textColor="@color/text_color_item"
+        android:textColor="@color/white"
         app:layout_constraintBaseline_toBaselineOf="@+id/textView10"
         app:layout_constraintStart_toEndOf="@+id/textView10" />
 
@@ -64,8 +67,10 @@
         android:id="@+id/labelDeliveryTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_late_delivery"
+        android:padding="3dp"
         android:text="25.6.2020  3:50"
-        android:textColor="@color/text_color_item"
+        android:textColor="@color/white"
         app:layout_constraintBaseline_toBaselineOf="@+id/textView11"
         app:layout_constraintStart_toStartOf="@+id/labelTimeOfSending" />
 
@@ -95,7 +100,7 @@
         android:text="Message type: "
         android:textColor="#A800FF40"
         app:layout_constraintStart_toStartOf="@+id/textView2"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toBottomOf="@+id/textView16" />
 
     <TextView
         android:id="@+id/textView12"
@@ -205,8 +210,27 @@
         android:layout_height="wrap_content"
         android:padding="5dp"
         android:text="TextView"
-        android:textColor="#00FF40"
+        android:textColor="#D8FFCF"
         app:layout_constraintEnd_toStartOf="@+id/img"
         app:layout_constraintTop_toBottomOf="@+id/labelDeliveryTime" />
+
+    <TextView
+        android:id="@+id/textView16"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Time: "
+        android:textColor="#A800FF40"
+        app:layout_constraintStart_toStartOf="@+id/textView2"
+        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+
+    <TextView
+        android:id="@+id/labelTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:text="TextView"
+        android:textColor="#00FF40"
+        app:layout_constraintBaseline_toBaselineOf="@+id/textView16"
+        app:layout_constraintStart_toEndOf="@+id/textView16" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

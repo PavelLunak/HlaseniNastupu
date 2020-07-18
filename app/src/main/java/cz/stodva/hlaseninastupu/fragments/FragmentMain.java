@@ -20,7 +20,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.fragment.app.Fragment;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
@@ -36,7 +35,6 @@ import cz.stodva.hlaseninastupu.receivers.MessageSentReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.AppUtils;
-import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 public class FragmentMain extends Fragment implements AppConstants {
 
@@ -136,50 +134,55 @@ public class FragmentMain extends Fragment implements AppConstants {
                 .setListener(new YesNoSelectedListener() {
                     @Override
                     public void yesSelected() {
-                        // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
-                        initPhoneStateListener(phone, text, messageType);
+                        activity.actualReport = new Report();
+                        activity.actualReport.setMessageType(messageType);
+                        activity.actualReport.setTime(new Date().getTime());
+                        activity.actualReport.setSentTime(WAITING);
+                        activity.actualReport.setDeliveryTime(WAITING);
+                        activity.actualReport.setAlarmRequestCode(activity.getTimerRequestCode());
+
+                        activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
+                            @Override
+                            public void onReportAdded(Report addedReport) {
+                                activity.actualReport.setId(addedReport.getId());
+                                activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
+
+                                // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
+                                initPhoneStateListener(phone, text, addedReport);
+                            }
+                        });
                     }
 
                     @Override public void noSelected() {}
                 }).show();
     }
 
-    private void sendSms(final String phone, final String text, int messageType) {
+    private void sendSms(final String phone, final String text, Report report) {
 
-        activity.actualReport = new Report();
-        activity.actualReport.setMessageType(messageType);
-        activity.actualReport.setTime(new Date().getTime());
-        activity.actualReport.setSentTime(WAITING);
-        activity.actualReport.setDeliveryTime(WAITING);
+        Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
+        sentIntent.putExtra("report_id", report.getId());
 
-        activity.getDataSource().addReport(activity.actualReport, new OnReportAddedListener() {
-            @Override
-            public void onReportAdded(Report addedReport) {
-                Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
-                sentIntent.putExtra("report_id", addedReport.getId());
+        AppUtils.vibrate(activity);
 
-                AppUtils.vibrate(activity);
+        PendingIntent pi1 = PendingIntent.getBroadcast(
+                activity,
+                1,
+                sentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
 
-                PendingIntent pi1 = PendingIntent.getBroadcast(
-                        activity,
-                        1,
-                        sentIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
+        deliveredIntent.putExtra("report_id", report.getId());
 
-                Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
-                deliveredIntent.putExtra("report_id", addedReport.getId());
+        PendingIntent pi2 = PendingIntent.getBroadcast(
+                activity,
+                2,
+                deliveredIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
 
-                PendingIntent pi2 = PendingIntent.getBroadcast(
-                        activity,
-                        2,
-                        deliveredIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
+        SmsManager sm = SmsManager.getDefault();
+        sm.sendTextMessage(phone, null, text, pi1, pi2);
 
-                SmsManager sm = SmsManager.getDefault();
-                sm.sendTextMessage(phone, null, text, pi1, pi2);
-
-            }
-        });
+        //activity.setTimerForError(activity.actualReport);
     }
 
     public void updateLastReportInfo() {
@@ -193,7 +196,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                 Log.d(LOG_TAG, "last report id: " + report.getId());
 
                 labelLastMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
-                labelLastReportTime.setText(AppUtils.timeToString(report.getTime()));
+                labelLastReportTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
 
                 if (report.getMessage() == null) {
                     labelLastMessage.setVisibility(View.GONE);
@@ -205,18 +208,13 @@ public class FragmentMain extends Fragment implements AppConstants {
                 boolean isSent = report.getSentTime() > NONE;
                 boolean isDelivered = report.getDeliveryTime() > NONE;
 
-                // Pokud je čas alarmu staršího data než je datum aktuální...
-                if (report.getTime() < new Date().getTime()) {
-                    if (report.getTime() != CANCELED) {
-                        showWarn(!isSent || !isDelivered);
-                    }
-                }
-
                 if (isSent) imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
                 else imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
                 if (isDelivered) imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
                 else imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                showWarn(report.isFailed());
             }
         });
     }
@@ -226,7 +224,7 @@ public class FragmentMain extends Fragment implements AppConstants {
         imgLastWarn.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    public void initPhoneStateListener(final String phone, final String text, final int messageType) {
+    public void initPhoneStateListener(final String phone, final String text, final Report report) {
         Log.d(LOG_TAG_SMS, "(1003) FragmentMain - initPhoneStateListener()");
         if (telephonyManager == null) {
             Log.d(LOG_TAG_SMS, "(1004) telephonyManager == null -> new init");
@@ -244,7 +242,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                     switch (serviceState.getState()) {
                         case ServiceState.STATE_IN_SERVICE:
                             Log.d(LOG_TAG_SMS, "(1006) FragmentMain - onServiceStateChanged: STATE_IN_SERVICE");
-                            sendSms(phone, text, messageType);
+                            sendSms(phone, text, report);
                             break;
                         case ServiceState.STATE_OUT_OF_SERVICE:
                             Log.d(LOG_TAG_SMS, "(1007) FragmentMain - onServiceStateChanged: STATE_OUT_OF_SERVICE: ");

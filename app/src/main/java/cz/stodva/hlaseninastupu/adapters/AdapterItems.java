@@ -1,5 +1,6 @@
 package cz.stodva.hlaseninastupu.adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,10 +18,13 @@ import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
+import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.customviews.DialogSelect;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
 import cz.stodva.hlaseninastupu.database.DbHelper;
 import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.utils.Animators;
@@ -42,6 +46,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
         // TEST
         TextView labelId;
+        TextView labelTime;
         TextView labelMsgType;
         TextView labelSent;
         TextView labelDelivered;
@@ -77,6 +82,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
         // TEST
         vh.labelId = v.findViewById(R.id.labelId);
+        vh.labelTime = v.findViewById(R.id.labelTime);
         vh.labelMsgType = v.findViewById(R.id.labelMsgType);
         vh.labelSent = v.findViewById(R.id.labelSent);
         vh.labelDelivered = v.findViewById(R.id.labelDelivered);
@@ -94,52 +100,51 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
             @Override
             public boolean onLongClick(View v) {
 
-                Report reportToCancel = activity.items.get(position);
+                final Report reportToUpdate = activity.items.get(position);
 
                 AppUtils.vibrate(activity);
 
-                // Úplné odstranění zrušeného nebo starého hlášení z databáze
-                if (reportToCancel.getTime() == CANCELED || reportToCancel.getTime() < new Date().getTime() || reportToCancel.getAlarmRequestCode() <= NONE) {
-                    DialogYesNo.createDialog(activity)
-                            .setTitle("")
-                            .setMessage("Odstranit toto hlášení?")
-                            .setListener(new YesNoSelectedListener() {
-                                @Override
-                                public void yesSelected() {
-                                    activity.getDataSource().removeItem(activity.items.get(position).getId(), new OnItemDeletedListener() {
+                ArrayList<String> items = new ArrayList();
+                items.add("Odstranit hlášení");
+
+                // Automatické hlášení lze obnovit (čas hlášení musí být v budoucnu)
+                if (reportToUpdate.getSentTime() == CANCELED && reportToUpdate.getTime() > new Date().getTime()) {
+                    items.add("Obnovit automatické hlášení");
+                }
+
+                // Automatické hlášení lze deaktivovat
+                if (reportToUpdate.getSentTime() == WAITING) {
+                    items.add("Zrušit hlášení");
+                }
+
+                String[] itemsToArray = items.toArray(new String[items.size()]);
+
+                DialogSelect.createDialog(activity)
+                        .setTitle("Úprava hlášení...")
+                        .setMessage("")
+                        .setItems(itemsToArray)
+                        .setListener(new DialogSelect.OnDialogSelectItemSelectedListener() {
+                            @Override
+                            public void onDialogSelectItemSelected(String selectedItem) {
+                                if (selectedItem.equals("Odstranit hlášení")) {
+                                    activity.cancelTimer(reportToUpdate, false);
+                                    //activity.cancelTimerForError(reportToUpdate);
+
+                                    activity.getDataSource().removeItem(reportToUpdate.getId(), new OnItemDeletedListener() {
                                         @Override
                                         public void onItemDeleted() {
-                                            activity.getDataSource().getAllItems(new OnItemsLoadedListener() {
-                                                @Override
-                                                public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                                                    activity.items = new ArrayList<Report>(loadedItems);
-                                                    notifyDataSetChanged();
-                                                }
-                                            });
+                                            activity.updateItems(null);
                                         }
                                     });
+                                } else if (selectedItem.equals("Obnovit automatické hlášení")) {
+                                    activity.setTimer(reportToUpdate);
+                                    //activity.setTimerForError(reportToUpdate);
+                                } else if (selectedItem.equals("Zrušit hlášení")) {
+                                    activity.cancelTimer(reportToUpdate, true);
+                                    //activity.cancelTimerForError(reportToUpdate);
                                 }
-
-                                @Override public void noSelected() {}
-                            }).show();
-                }
-                // Deaktivace čekajícího hlášení
-                else {
-                    DialogYesNo.createDialog(activity)
-                            .setTitle("")
-                            .setMessage("Zrušit toto hlášení?")
-                            .setListener(new YesNoSelectedListener() {
-                                @Override
-                                public void yesSelected() {
-                                    activity.cancelTimer(activity.items.get(position));
-                                    activity.cancelTimerForError(activity.items.get(position));
-                                    // notifyDataSetChanged() je voláno v metodách cancelTimer()
-                                    // a cancelTimerForError() po aktualizaci dat v databázi
-                                }
-
-                                @Override public void noSelected() {}
-                            }).show();
-                }
+                            }
+                        }).show();
 
                 return true;
             }
@@ -155,6 +160,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
         // TEST
         holder.labelId.setOnLongClickListener(onLongClickListener);
+        holder.labelTime.setOnLongClickListener(onLongClickListener);
         holder.labelMsgType.setOnLongClickListener(onLongClickListener);
         holder.labelSent.setOnLongClickListener(onLongClickListener);
         holder.labelDelivered.setOnLongClickListener(onLongClickListener);
@@ -163,25 +169,72 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
         // TEST
         holder.labelId.setText("" + report.getId());
+        holder.labelTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
         holder.labelMsgType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "Nástup" : "Konec");
-        holder.labelSent.setText(AppUtils.timeToString(report.getSentTime()));
-        holder.labelDelivered.setText(AppUtils.timeToString(report.getDeliveryTime()));
+        holder.labelSent.setText(AppUtils.timeToString(report.getSentTime(), AppConstants.REPORT_PHASE_SEND));
+        holder.labelDelivered.setText(AppUtils.timeToString(report.getDeliveryTime(), AppConstants.REPORT_PHASE_DELIVERY));
         holder.labelCodeAlarm.setText("" + report.getAlarmRequestCode());
         holder.labelCodeError.setText("" + report.getRequestCodeForErrorAlarm());
 
+        // Moc velký časový rozdíl mezi odesláním a doručením
+        if ((report.getDeliveryTime() - report.getSentTime()) >= TIME_FOR_CONTROL) {
+            holder.labelDeliveryTime.setBackground(AppCompatResources.getDrawable(activity, R.drawable.bg_late_delivery));
+            holder.labelDeliveryTime.setTextColor(activity.getResources().getColor(R.color.white));
+        } else {
+            holder.labelDeliveryTime.setBackground(null);
+            holder.labelDeliveryTime.setTextColor(activity.getResources().getColor(R.color.white));
+        }
+
         holder.labelMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "Nástup" : "Konec");
-        holder.labelReportTime.setText(AppUtils.timeToString(report.getTime()));
+        holder.labelReportTime.setText(AppUtils.timeToString(report.getTime(), AppConstants.REPORT_PHASE_NONE));
 
         if (report.getSentTime() == 0) holder.labelTimeOfSending.setText("");
-        else holder.labelTimeOfSending.setText(AppUtils.timeToString(report.getSentTime()));
+        else
+            holder.labelTimeOfSending.setText(AppUtils.timeToString(report.getSentTime(), AppConstants.REPORT_PHASE_SEND));
 
         if (report.getDeliveryTime() == 0) holder.labelDeliveryTime.setText("?");
-        else holder.labelDeliveryTime.setText(AppUtils.timeToString(report.getDeliveryTime()));
-
-        if (report.getMessageType() == MESSAGE_TYPE_START)
-            holder.root.setBackgroundResource(R.drawable.bg_item_start);
         else
+            holder.labelDeliveryTime.setText(AppUtils.timeToString(report.getDeliveryTime(), AppConstants.REPORT_PHASE_DELIVERY));
+
+        // VZHLED POLOŽKY --------------------------------------------------------------------------
+        // Neúspěšné doručení hlášení
+        if (report.isFailed()) {
+            holder.root.setBackgroundResource(R.drawable.bg_item_failed);
+
+            holder.labelMessageType.setTextColor(activity.getResources().getColor(R.color.end_color_item));
+            holder.labelReportTime.setTextColor(activity.getResources().getColor(R.color.end_color_item));
+        }
+        // Hlášení zrušeno uživatelem
+        else if (report.getDeliveryTime() == CANCELED) {
+            if (report.getMessageType() == MESSAGE_TYPE_START) holder.root.setBackgroundResource(R.drawable.bg_item_old_start);
+            else holder.root.setBackgroundResource(R.drawable.bg_item_old_end);
+
+            holder.labelMessageType.setTextColor(activity.getResources().getColor(R.color.old_color_item));
+            holder.labelReportTime.setTextColor(activity.getResources().getColor(R.color.old_color_item));
+        }
+        // Úspěšné doručené hlášení
+        else if (report.isDelivered()) {
+            if (report.getMessageType() == MESSAGE_TYPE_START)
+                holder.root.setBackgroundResource(R.drawable.bg_item_old_start);
+            else holder.root.setBackgroundResource(R.drawable.bg_item_old_end);
+
+            holder.labelMessageType.setTextColor(activity.getResources().getColor(R.color.old_color_item));
+            holder.labelReportTime.setTextColor(activity.getResources().getColor(R.color.old_color_item));
+        }
+        // Hlášení nástupu
+        else if (report.getMessageType() == MESSAGE_TYPE_START) {
+            holder.root.setBackgroundResource(R.drawable.bg_item_start);
+
+            holder.labelMessageType.setTextColor(activity.getResources().getColor(R.color.start_color_item));
+            holder.labelReportTime.setTextColor(activity.getResources().getColor(R.color.start_color_item));
+        }
+        // Hlášení konce
+        else if (report.getMessageType() == MESSAGE_TYPE_END) {
             holder.root.setBackgroundResource(R.drawable.bg_item_end);
+
+            holder.labelMessageType.setTextColor(activity.getResources().getColor(R.color.end_color_item));
+            holder.labelReportTime.setTextColor(activity.getResources().getColor(R.color.end_color_item));
+        }
 
         if (report.getMessage() == null) {
             holder.labelMessage.setVisibility(View.GONE);
@@ -190,13 +243,14 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
             holder.labelMessage.setText(report.getMessage());
         }
 
+        // VZHLED IKONY POLOLŽKY -------------------------------------------------------------------
         // Hlášení bylo úspěšně odesláno i doručeno
         if (report.getSentTime() > NONE && report.getDeliveryTime() > NONE) {
             holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_yellow));
         }
         // Hlášení čeká na odeslání nebo doručení
-        else if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING){
-            if (report.getRequestCodeForErrorAlarm() > NONE) holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alarm_on));
+        else if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING) {
+            if (report.isErrorAlert()) holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alarm_on));
             else holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alert_add));
         }
         // Hlášení se nepodařilo odeslat nebo doručit v nastaveném časovém limitu
@@ -205,7 +259,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
             holder.root.setBackgroundResource(R.drawable.bg_item_failed);
         }
         // Hlášení bylo zrušeno uživatelem
-        else if (report.getTime() == CANCELED) {
+        else if (report.getSentTime() == CANCELED) {
             holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_canceled));
         }
 
@@ -214,19 +268,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
             public void onClick(View v) {
                 if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING) {
                     Animators.animateButtonClick(holder.img, true);
-
-                    if (report.getRequestCodeForErrorAlarm() > NONE) {
-                        activity.cancelTimerForError(activity.items.get(position));
-                        holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alert_add));
-                        notifyDataSetChanged();
-                        Toast.makeText(activity, "Buzení při neúspěšném odeslání hlášení VYPNUTO...", Toast.LENGTH_LONG).show();
-                    } else {
-                        activity.items.get(position).setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
-                        activity.setTimerForError(activity.items.get(position));
-                        holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alert_on));
-                        notifyDataSetChanged();
-                        Toast.makeText(activity, "Buzení při neúspěšném odeslání hlášení ZAPNUTO...", Toast.LENGTH_LONG).show();
-                    }
+                    activity.updateErrorAlert(report, !report.isErrorAlert());
                 }
             }
         });

@@ -11,8 +11,6 @@ import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-import java.util.Date;
-
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.database.DataSource;
 import cz.stodva.hlaseninastupu.database.DbHelper;
@@ -64,15 +62,16 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
             String errMsg = null;
             int errorType = 0;
 
-            if (report.getSentTime() == UNSUCCESFUL) {
+            // NEBYLO HLÁŠENÍ ODESLÁNO?
+            if (report.getSentTime() == WAITING) {
                 Log.d(LOG_TAG_SMS, LOG_TAB + "(07) TimerReceiver - Nepodařilo se odeslat hlášení");
                 errMsg = "Nepodařilo se v nastaveném časovém limitu odeslat hlášení!";
                 errorType = ERROR_TYPE_NO_SENT;
             }
 
-            //BYLO HLÁŠENÍ ODESLÁNO? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
-            if (report.getSentTime() > UNSUCCESFUL) {
-                if (report.getDeliveryTime() == UNSUCCESFUL) {
+            // BYLO HLÁŠENÍ ODESLÁNO? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
+            if (report.getSentTime() > NONE) {
+                if (report.getDeliveryTime() == WAITING) {
                     Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nebylo doručeno");
                     errMsg = "Hlášení nebylo v nastaveném časovém limitu doručeno!";
                     errorType = ERROR_TYPE_NO_DELIVERED;
@@ -93,7 +92,11 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
             }
 
             // Nastavení doručení na neúspěšné pro případ nedoručení hlášení
-            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
+            dataSource.updateReportValue(
+                    report.getId(),
+                    new String[] {DbHelper.COLUMN_DELIVERED},
+                    new long[] {UNSUCCESFUL},
+                    null);
 
             telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 
@@ -166,7 +169,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent deliveredIntent = new Intent(context, MessageDeliveredReceiver.class);
-        sentIntent.putExtra("report_id", report.getId());
+        deliveredIntent.putExtra("report_id", report.getId());
         PendingIntent pi2 = PendingIntent.getBroadcast(
                 context,
                 2,
@@ -180,13 +183,6 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                 text,
                 pi1,
                 pi2);
-
-
-        /*
-        // TODO - tohle se provádí v MessageSentReceiver - po skončení testování bez SMS smazat
-        dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_SENT, new Date().getTime(), null);
-        dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_REQUEST_CODE, NONE, null);
-        */
     }
 
     private void requestShowNoSentError(Context context, final Report report, String errMsg, int errorType) {
@@ -197,20 +193,28 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
 
         if (errorType == ERROR_TYPE_NO_SENT) {
             dataSource.updateReportMessage(report.getId(), errMsg, null);
-            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_SENT, UNSUCCESFUL, null);
 
             // Pokud nelze hlášení odeslat, bude zrušen alarm pro kontrolu odeslání a doručení
-            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
+            dataSource.updateReportValue(
+                    report.getId(),
+                    new String[] {DbHelper.COLUMN_SENT, DbHelper.COLUMN_DELIVERED, DbHelper.COLUMN_IS_FAILED},
+                    new long[] {UNSUCCESFUL, UNSUCCESFUL, 1},
+                    null);
+
             cancelTimerForError(context, report);
         } else {
             dataSource.updateReportMessage(report.getId(), errMsg, null);
-            dataSource.updateReportValue(report.getId(), DbHelper.COLUMN_DELIVERED, UNSUCCESFUL, null);
+            dataSource.updateReportValue(
+                    report.getId(),
+                    new String[] {DbHelper.COLUMN_DELIVERED, DbHelper.COLUMN_IS_FAILED},
+                    new long[] {UNSUCCESFUL, 1},
+                    null);
         }
 
         telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
 
-        // Není nastaven příznak o potřebě alarmu při neodeslání i nedoručení hlášení
+        // Je nastaven příznak o potřebě alarmu při neodeslání i nedoručení hlášení
         if (report.isErrorAlert()) {
             Intent intentToMain = new Intent(context, MainActivity.class);
             intentToMain.putExtra("report_id", report.getId());
@@ -241,8 +245,8 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
 
         dataSource.updateReportValue(
                 report.getId(),
-                DbHelper.COLUMN_ERROR_REQUEST_CODE,
-                NONE,
+                new String[] {DbHelper.COLUMN_ERROR_REQUEST_CODE},
+                new long[] {NONE},
                 new OnReportUpdatedListener() {
                     @Override
                     public void onReportUpdated(Report updatedReport) {

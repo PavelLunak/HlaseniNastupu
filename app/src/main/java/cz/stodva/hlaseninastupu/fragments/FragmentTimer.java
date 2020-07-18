@@ -141,16 +141,15 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                     activity.actualReport.setDeliveryTime(WAITING);
                                     activity.actualReport.setAlarmRequestCode(activity.getTimerRequestCode());
 
-                                    activity.getDataSource().addReport(activity.actualReport, new OnReportAddedListener() {
+                                    activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
                                         @Override
                                         public void onReportAdded(Report addedReport) {
                                             Log.d(LOG_TAG, "Nové hlášení bylo přidáno a získávám jeho ID, které je: " + addedReport.getId());
                                             activity.actualReport.setId(addedReport.getId());
                                             activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
-                                            activity.setTimer(activity.actualReport.getTime(), activity.actualReport.getId());
-                                            activity.setTimerForError(activity.actualReport);
+                                            activity.setTimer(activity.actualReport);
+                                            //activity.setTimerForError(activity.actualReport);
 
-                                            if (activity.fragmentMain != null) activity.fragmentMain.updateLastReportInfo();
                                             activity.showFragment(FRAGMENT_MAIN_NAME);
                                         }
                                     });

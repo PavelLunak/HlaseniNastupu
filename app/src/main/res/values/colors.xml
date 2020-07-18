@@ -4,15 +4,28 @@
     <color name="colorPrimaryDark">#3700B3</color>
     <color name="colorAccent">#03DAC5</color>
 
+    <color name="white">#FFFFFF</color>
+
     <color name="text_color_et_settings">#535353</color>
     <color name="text_color_et_hint">#D65B5B</color>
     <color name="text_color_et_default">#A6A6A6</color>
     <color name="text_color">#A6A6A6</color>
-    <color name="text_color_item">#DADADA</color>
+    <color name="text_color_item">#000000</color>
 
     <color name="contact_color">#03A9F4</color>
-    <color name="start_color">#45FF00</color>
-    <color name="start_color_dark">#298507</color>
-    <color name="end_color">#FA6363</color>
-    <color name="end_color_dark">#980606</color>
+
+    <color name="start_color">#207700</color>
+    <color name="start_color_dark">#103A00</color>
+    <color name="start_color_item">#D2FFC1</color>
+
+    <color name="end_color">#0082E8</color>
+    <color name="end_color_dark">#00467E</color>
+    <color name="end_color_item">#CBE9FF</color>
+
+    <color name="old_color">#808080</color>
+    <color name="old_color_dark">#393939</color>
+    <color name="old_color_item">#D6D6D6</color>
+
+    <color name="failed_color">#E8A2BA</color>
+    <color name="failed_color_item">#83012D</color>
 </resources>

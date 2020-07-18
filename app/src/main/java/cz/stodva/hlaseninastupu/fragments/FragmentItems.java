@@ -18,6 +18,7 @@ import android.widget.TextView;
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.adapters.AdapterItems;
+import cz.stodva.hlaseninastupu.utils.Animators;
 
 
 public class FragmentItems extends Fragment {
@@ -71,6 +72,40 @@ public class FragmentItems extends Fragment {
         adapter = new AdapterItems(activity);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+
+        imgArrowLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgArrowLeft, true);
+                activity.pageDown();
+                updatePageInfo();
+            }
+        });
+
+        imgArrowRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgArrowRight, true);
+                activity.pageUp();
+                updatePageInfo();
+            }
+        });
+    }
+
+    public void updatePageInfo() {
+        labelTotalItemsCount.setText("Počet uložených hlášení: " + activity.getItemsCount());
+        labelPagesCount.setText("Stránka: " + activity.getPage() + "/" + activity.getPagesCount());
+
+        if (activity.getPage() <= 1) imgArrowLeft.setVisibility(View.GONE);
+        else imgArrowLeft.setVisibility(View.VISIBLE);
+
+        if (activity.getPage() < activity.getPagesCount()) imgArrowRight.setVisibility(View.VISIBLE);
+        else imgArrowRight.setVisibility(View.GONE);
+    }
+
+    public void updateFragment() {
+        updatePageInfo();
+        if (adapter != null) adapter.notifyDataSetChanged();
     }
 
     public AdapterItems getAdapter() {

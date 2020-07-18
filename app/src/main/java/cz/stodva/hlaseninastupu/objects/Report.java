@@ -15,6 +15,8 @@ public class Report implements Parcelable {
     private int requestCodeForErrorAlarm;
     private boolean isErrorAlert;
     private String message;
+    private boolean isFailed;
+    private boolean isDelivered;
 
 
     public Report() {}
@@ -31,6 +33,8 @@ public class Report implements Parcelable {
                 ", requestCodeForErrorAlarm=" + requestCodeForErrorAlarm +
                 ", isErrorAlert=" + isErrorAlert +
                 ", message='" + message + '\'' +
+                ", isFailed=" + isFailed +
+                ", isDelivered=" + isDelivered +
                 '}';
     }
 
@@ -106,6 +110,22 @@ public class Report implements Parcelable {
         this.message = message;
     }
 
+    public boolean isFailed() {
+        return isFailed;
+    }
+
+    public void setFailed(boolean failed) {
+        isFailed = failed;
+    }
+
+    public boolean isDelivered() {
+        return isDelivered;
+    }
+
+    public void setDelivered(boolean delivered) {
+        isDelivered = delivered;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -122,6 +142,8 @@ public class Report implements Parcelable {
         dest.writeInt(this.requestCodeForErrorAlarm);
         dest.writeByte(this.isErrorAlert ? (byte) 1 : (byte) 0);
         dest.writeString(this.message);
+        dest.writeByte(this.isFailed ? (byte) 1 : (byte) 0);
+        dest.writeByte(this.isDelivered ? (byte) 1 : (byte) 0);
     }
 
     protected Report(Parcel in) {
@@ -134,6 +156,8 @@ public class Report implements Parcelable {
         this.requestCodeForErrorAlarm = in.readInt();
         this.isErrorAlert = in.readByte() != 0;
         this.message = in.readString();
+        this.isFailed = in.readByte() != 0;
+        this.isDelivered = in.readByte() != 0;
     }
 
     public static final Parcelable.Creator<Report> CREATOR = new Parcelable.Creator<Report>() {
