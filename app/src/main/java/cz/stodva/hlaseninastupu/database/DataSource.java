@@ -253,7 +253,11 @@ public class DataSource implements AppConstants {
     public void removeItem(int itemId, OnItemDeletedListener listener) {
         Log.d(LOG_TAG, "DataSource - removeItem(itemId: " + itemId + ")" + LOG_UNDERLINED);
         open();
-        int rowsRemoved = database.delete(DbHelper.TABLE_REPORTS, DbHelper.COLUMN_ID + " = ?", new String[] {String.valueOf(itemId)});
+        int rowsRemoved = database.delete(
+                DbHelper.TABLE_REPORTS,
+                DbHelper.COLUMN_ID + " = ?",
+                new String[] {String.valueOf(itemId)});
+
         if (listener != null) listener.onItemDeleted();
     }
 
@@ -290,6 +294,42 @@ public class DataSource implements AppConstants {
         }
     }
 
+    // Získání všech hlášení, která čekají na odeslání nebo doručení
+    public void getPageWaitingItems(int offset, int itemsPerPage, OnItemsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getAllItems()" + LOG_UNDERLINED);
+        open();
+        ArrayList<Report> toReturn = new ArrayList<>();
+        Report report;
+        Cursor cursor;
+
+        try {
+            cursor = database.query(
+                    DbHelper.TABLE_REPORTS,
+                    null,
+                    DbHelper.COLUMN_SENT + " = " + ("" + WAITING) + " OR " + DbHelper.COLUMN_DELIVERED + " = " + ("" + WAITING),
+                    null,
+                    null,
+                    null,
+                    DbHelper.COLUMN_TIME + " DESC",
+                    "" + offset + ", " + itemsPerPage);
+
+            cursor.moveToFirst();
+
+            for(int i = 0, count = cursor.getCount(); i < count; i ++) {
+                report = cursorToReport(cursor);
+                toReturn.add(report);
+                if(cursor.isLast()) break;
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        } catch (Exception e) {
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        }
+    }
+
+    // Nebude načítat hlášení čekající na odeslání nebo doručení, tak jsou načítána zvlášť metodou getWaitingItems()
     public void getPage(int offset, int itemsPerPage, OnItemsLoadedListener listener) {
         Log.d(LOG_TAG, "DataSource - getAllItems()" + LOG_UNDERLINED);
         Log.d(LOG_TAG_PAGES, "DataSource - getAllItems()");
@@ -348,6 +388,11 @@ public class DataSource implements AppConstants {
         return report;
     }
 
+    public void getCount(boolean onlyWaiting, OnItemsCountCheckedListener listener) {
+        if (onlyWaiting) getWaitingItemsCount(listener);
+        else getItemsCount(listener);
+    }
+
     public void getItemsCount(OnItemsCountCheckedListener listener) {
         Log.d(LOG_TAG, "DataSource - getItemsCount()" + LOG_UNDERLINED);
 
@@ -359,6 +404,17 @@ public class DataSource implements AppConstants {
         cursor.close();
 
         Log.d(LOG_TAG, LOG_TAB + "count: " + toReturn);
+
+        if (listener != null) listener.onItemsCountChecked(toReturn);
+    }
+
+    public void getWaitingItemsCount(OnItemsCountCheckedListener listener) {
+        open();
+        int toReturn = 0;
+        String selectQuery = "SELECT COUNT(*) AS pocet FROM " + DbHelper.TABLE_REPORTS + " WHERE " + DbHelper.COLUMN_SENT + " = " + WAITING;
+        Cursor cursor = database.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) toReturn = cursor.getInt(0);
+        cursor.close();
 
         if (listener != null) listener.onItemsCountChecked(toReturn);
     }

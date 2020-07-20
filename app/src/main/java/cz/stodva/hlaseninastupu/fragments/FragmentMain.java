@@ -26,6 +26,7 @@ import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
@@ -44,6 +45,7 @@ public class FragmentMain extends Fragment implements AppConstants {
 
     TextView btnStartShift, btnEndShift, btnSetTimeForReport;
     TextView labelLastMessageType, labelLastReportTime, labelLastMessage;
+    TextView titleLastReport, labelCount;
     ImageView imgLastSent, imgLastDelivered, imgLastWarn;
 
 
@@ -72,6 +74,9 @@ public class FragmentMain extends Fragment implements AppConstants {
         labelLastReportTime = view.findViewById(R.id.labelLastReportTime);
         labelLastMessage = view.findViewById(R.id.labelLastMessage);
 
+        titleLastReport = view.findViewById(R.id.titleLastReport);
+        labelCount = view.findViewById(R.id.labelCount);
+
         imgLastSent = view.findViewById(R.id.imgLastSent);
         imgLastDelivered = view.findViewById(R.id.imgLastDelivered);
         imgLastWarn = view.findViewById(R.id.imgLastWarn);
@@ -83,7 +88,7 @@ public class FragmentMain extends Fragment implements AppConstants {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        updateLastReportInfo();
+        updateInfo();
 
         btnStartShift.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -106,7 +111,7 @@ public class FragmentMain extends Fragment implements AppConstants {
             public void onClick(View v) {
                 Animators.animateButtonClick(btnSetTimeForReport, true);
                 if (!activity.checkSmsPermissionGranted()) return;
-                activity.showFragment(FRAGMENT_TIMER_NAME);
+                activity.showFragment(FRAGMENT_TIMER_NAME, null);
             }
         });
     }
@@ -136,16 +141,14 @@ public class FragmentMain extends Fragment implements AppConstants {
                     public void yesSelected() {
                         activity.actualReport = new Report();
                         activity.actualReport.setMessageType(messageType);
-                        activity.actualReport.setTime(new Date().getTime());
+                        activity.actualReport.setTime(AppUtils.setSecondAndMillisToZero(new Date().getTime()));
                         activity.actualReport.setSentTime(WAITING);
                         activity.actualReport.setDeliveryTime(WAITING);
-                        activity.actualReport.setAlarmRequestCode(activity.getTimerRequestCode());
 
                         activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
                             @Override
                             public void onReportAdded(Report addedReport) {
                                 activity.actualReport.setId(addedReport.getId());
-                                activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
 
                                 // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
                                 initPhoneStateListener(phone, text, addedReport);
@@ -185,16 +188,28 @@ public class FragmentMain extends Fragment implements AppConstants {
         //activity.setTimerForError(activity.actualReport);
     }
 
-    public void updateLastReportInfo() {
+    public void updateInfo() {
         Log.d(LOG_TAG, "(1001) FragmentMain - updateReportInfo()");
 
+        // Získání naposledy vloženého hlášení
+        // TODO naposledy vložené hlášení nemusí být nejbližší ani poslední odeslané hlášení!!!
         activity.getDataSource().getReportByMaxId(new OnReportLoadedListener() {
             @Override
             public void onReportLoaded(Report report) {
-                if (report == null) return;
+                if (report == null) {
+                    titleLastReport.setText("Poslední hlášení");
+                    labelLastMessageType.setText("-----");
+                    labelLastReportTime.setText("--.--.---- --:--");
+
+                    imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+                    imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                    return;
+                }
 
                 Log.d(LOG_TAG, "last report id: " + report.getId());
 
+                titleLastReport.setText(report.getSentTime() == WAITING ? "Následující hlášení" : "Poslední hlášení");
                 labelLastMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
                 labelLastReportTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
 
@@ -215,6 +230,13 @@ public class FragmentMain extends Fragment implements AppConstants {
                 else imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
 
                 showWarn(report.isFailed());
+            }
+        });
+
+        activity.getDataSource().getWaitingItemsCount(new OnItemsCountCheckedListener() {
+            @Override
+            public void onItemsCountChecked(int count) {
+                labelCount.setText("" + count);
             }
         });
     }

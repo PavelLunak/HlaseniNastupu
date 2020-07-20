@@ -161,6 +161,37 @@
 
             </RelativeLayout>
 
+            <RelativeLayout
+                android:id="@+id/layoutCountOfWaitingReports"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/layoutLastTimer"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/titleCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="10dp"
+                    android:text="Počet čekajících hlášení: "
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <TextView
+                    android:id="@+id/labelCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/titleCount"
+                    android:text="2"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+            </RelativeLayout>
+
         </RelativeLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

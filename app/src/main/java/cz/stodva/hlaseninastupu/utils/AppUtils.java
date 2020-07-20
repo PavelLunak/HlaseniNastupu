@@ -6,6 +6,8 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 public class AppUtils implements AppConstants {
 
@@ -67,5 +69,15 @@ public class AppUtils implements AppConstants {
             default:
                 return "UNKNOWN";
         }
+    }
+
+    public static long setSecondAndMillisToZero(long time) {
+        Calendar calendar = Calendar.getInstance();
+
+        calendar.setTime(new Date(time));
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        return calendar.getTimeInMillis();
     }
 }

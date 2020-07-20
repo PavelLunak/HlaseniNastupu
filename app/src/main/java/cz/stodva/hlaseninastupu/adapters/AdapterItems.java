@@ -1,5 +1,6 @@
 package cz.stodva.hlaseninastupu.adapters;
 
+import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -106,8 +107,9 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
                 ArrayList<String> items = new ArrayList();
                 items.add("Odstranit hlášení");
+                items.add("Použít hlášení");
 
-                // Automatické hlášení lze obnovit (čas hlášení musí být v budoucnu)
+                // Automatické hlášení lze obnovit (čas hlášení je v budoucnu)
                 if (reportToUpdate.getSentTime() == CANCELED && reportToUpdate.getTime() > new Date().getTime()) {
                     items.add("Obnovit automatické hlášení");
                 }
@@ -115,20 +117,19 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
                 // Automatické hlášení lze deaktivovat
                 if (reportToUpdate.getSentTime() == WAITING) {
                     items.add("Zrušit hlášení");
+                    items.add("Upravit hlášení");
                 }
 
                 String[] itemsToArray = items.toArray(new String[items.size()]);
 
                 DialogSelect.createDialog(activity)
                         .setTitle("Úprava hlášení...")
-                        .setMessage("")
                         .setItems(itemsToArray)
                         .setListener(new DialogSelect.OnDialogSelectItemSelectedListener() {
                             @Override
                             public void onDialogSelectItemSelected(String selectedItem) {
                                 if (selectedItem.equals("Odstranit hlášení")) {
                                     activity.cancelTimer(reportToUpdate, false);
-                                    //activity.cancelTimerForError(reportToUpdate);
 
                                     activity.getDataSource().removeItem(reportToUpdate.getId(), new OnItemDeletedListener() {
                                         @Override
@@ -138,10 +139,19 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
                                     });
                                 } else if (selectedItem.equals("Obnovit automatické hlášení")) {
                                     activity.setTimer(reportToUpdate);
-                                    //activity.setTimerForError(reportToUpdate);
                                 } else if (selectedItem.equals("Zrušit hlášení")) {
                                     activity.cancelTimer(reportToUpdate, true);
-                                    //activity.cancelTimerForError(reportToUpdate);
+                                } else if (selectedItem.equals("Upravit hlášení")) {
+                                    activity.actualReport = reportToUpdate;
+                                    Bundle args = new Bundle();
+                                    args.putBoolean("edit", true);
+                                    activity.showFragment(FRAGMENT_TIMER_NAME, args);
+                                } else if (selectedItem.equals("Použít hlášení")) {
+                                    activity.actualReport = reportToUpdate;
+                                    Bundle args = new Bundle();
+                                    args.putBoolean("use", true);
+                                    //args.putParcelable("reportToUpdate", reportToUpdate);
+                                    activity.showFragment(FRAGMENT_TIMER_NAME, args);
                                 }
                             }
                         }).show();

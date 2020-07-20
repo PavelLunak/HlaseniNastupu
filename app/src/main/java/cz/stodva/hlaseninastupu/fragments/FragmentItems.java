@@ -12,12 +12,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.adapters.AdapterItems;
+import cz.stodva.hlaseninastupu.listeners.OnNewPageLoadedListener;
 import cz.stodva.hlaseninastupu.utils.Animators;
 
 
@@ -26,6 +29,7 @@ public class FragmentItems extends Fragment {
     RecyclerView recyclerView;
     TextView labelPagesCount, labelTotalItemsCount, labelNoItems;
     ImageView imgArrowLeft, imgArrowRight;
+    CheckBox chbFilter;
 
     MainActivity activity;
     AdapterItems adapter;
@@ -48,6 +52,7 @@ public class FragmentItems extends Fragment {
         labelNoItems = view.findViewById(R.id.labelNoItems);
         imgArrowLeft = view.findViewById(R.id.imgArrowLeft);
         imgArrowRight = view.findViewById(R.id.imgArrowRight);
+        chbFilter = view.findViewById(R.id.chbFilter);
 
         return view;
     }
@@ -55,7 +60,48 @@ public class FragmentItems extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        imgArrowLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgArrowLeft, true);
+                activity.pageDown(new OnNewPageLoadedListener() {
+                    @Override
+                    public void onNewPageLoaded() {
+                        recyclerView.scrollToPosition(0);
+                    }
+                });
+
+                updatePageInfo();
+            }
+        });
+
+        imgArrowRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Animators.animateButtonClick(imgArrowRight, true);
+                activity.pageUp(new OnNewPageLoadedListener() {
+                    @Override
+                    public void onNewPageLoaded() {
+                        recyclerView.scrollToPosition(0);
+                    }
+                });
+
+                updatePageInfo();
+            }
+        });
+
+        chbFilter.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                activity.setPage(1);
+                activity.setShowOnlyWaitingReports(isChecked);
+                activity.updateItems(null);
+            }
+        });
+
         updateAdapter();
+        chbFilter.setChecked(activity.isShowOnlyWaitingReports());
     }
 
     public void updateAdapter() {
@@ -72,28 +118,10 @@ public class FragmentItems extends Fragment {
         adapter = new AdapterItems(activity);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
-
-        imgArrowLeft.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Animators.animateButtonClick(imgArrowLeft, true);
-                activity.pageDown();
-                updatePageInfo();
-            }
-        });
-
-        imgArrowRight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Animators.animateButtonClick(imgArrowRight, true);
-                activity.pageUp();
-                updatePageInfo();
-            }
-        });
     }
 
     public void updatePageInfo() {
-        labelTotalItemsCount.setText("Počet uložených hlášení: " + activity.getItemsCount());
+        labelTotalItemsCount.setText((activity.isShowOnlyWaitingReports() ? "Počet aktivních hlášení: " : "Počet uložených hlášení: ") + activity.getItemsCount());
         labelPagesCount.setText("Stránka: " + activity.getPage() + "/" + activity.getPagesCount());
 
         if (activity.getPage() <= 1) imgArrowLeft.setVisibility(View.GONE);

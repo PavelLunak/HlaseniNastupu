@@ -4,13 +4,41 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_app"
-    android:clickable="true">
+    android:clickable="true"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/layoutFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <CheckBox
+            android:id="@+id/chbFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="10dp"
+            android:checked="false"
+            android:padding="15dp"
+            android:text="Zobrazit pouze aktivní hlášení"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            app:buttonTint="@color/start_color_item" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@id/chbFilter"
+            android:background="@color/text_color" />
+
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/labelNoItems"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="100dp"
         android:gravity="center_horizontal"
         android:text="Žádná hlášení"
         android:textColor="@color/text_color"
@@ -19,7 +47,7 @@
     <RelativeLayout
         android:id="@+id/layoutNavigation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_alignParentBottom="true"
         android:padding="5dp">
 
@@ -57,6 +85,7 @@
             android:id="@+id/imgArrowLeft"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:layout_centerVertical="true"
             app:srcCompat="@drawable/ic_arrow_left_white" />
 
         <ImageView
@@ -64,6 +93,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
             app:srcCompat="@drawable/ic_arrow_right_white" />
     </RelativeLayout>
 
@@ -71,7 +101,8 @@
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/layoutNavigation" />
+        android:layout_above="@+id/layoutNavigation"
+        android:layout_below="@id/layoutFilter" />
     <!--
         android:layout_above="@+id/layoutNavigation"
         -->

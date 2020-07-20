@@ -60,6 +60,7 @@ import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnNewPageLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
@@ -98,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements
     int year = -1;
     int hours = -1;
     int minutes = -1;
+
+    boolean showOnlyWaitingReports;
 
     public ArrayList<Report> items;
     public Report actualReport;
@@ -140,6 +143,8 @@ public class MainActivity extends AppCompatActivity implements
         outState.putInt("pagesCount", pagesCount);
         outState.putInt("itemsCount", itemsCount);
         outState.putInt("page", page);
+
+        outState.putBoolean("showOnlyWaitingReports", showOnlyWaitingReports);
     }
 
     @Override
@@ -157,6 +162,8 @@ public class MainActivity extends AppCompatActivity implements
         pagesCount = savedInstanceState.getInt("pagesCount");
         itemsCount = savedInstanceState.getInt("itemsCount");
         page = savedInstanceState.getInt("page");
+
+        showOnlyWaitingReports = savedInstanceState.getBoolean("showOnlyWaitingReports", false);
     }
 
     @Override
@@ -186,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements
 
                 int lastBeIndex = fragmentManager.getBackStackEntryCount() - 1;
                 if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_MAIN_NAME)) {
-                    showFragment(FRAGMENT_SETTINGS_NAME);
+                    showFragment(FRAGMENT_SETTINGS_NAME, null);
                 } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_SETTINGS_NAME)) {
                     onBackPressed();
                 } else if (fragmentManager.getBackStackEntryAt(lastBeIndex).getName().equals(FRAGMENT_TIMER_NAME)) {
@@ -201,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onClick(View v) {
                 Animators.animateButtonClick(imgItems, true);
-                showFragment(FRAGMENT_ITEMS_NAME);
+                showFragment(FRAGMENT_ITEMS_NAME, null);
             }
         });
 
@@ -233,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements
         });
 
         if (savedInstanceState == null) {
-            showFragment(FRAGMENT_MAIN_NAME);
+            showFragment(FRAGMENT_MAIN_NAME, null);
             checkSettings();
         }
 
@@ -359,19 +366,18 @@ public class MainActivity extends AppCompatActivity implements
         imgToolbar.setImageResource(resId);
     }
 
-    public void showFragment(String name) {
+    public void showFragment(String name, Bundle args) {
         Fragment fragment = fragmentManager.findFragmentByTag(name);
 
-        if (fragment == null) addFragment(fragment, name);
+        if (fragment == null) addFragment(fragment, name, args);
         else restoreFragment(name);
     }
 
-    public void addFragment(Fragment fragment, String name) {
+    public void addFragment(Fragment fragment, String name, Bundle args) {
         if (fragment == null) {
             fragment = createFragment(name);
         }
 
-        Bundle args = new Bundle();
         fragment.setArguments(args);
 
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
@@ -421,32 +427,39 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void updateItems(final OnItemsLoadedListener onItemsLoadedListener) {
-        Log.d(LOG_TAG_PAGES, "updateItems()");
-        getDataSource().getItemsCount(new OnItemsCountCheckedListener() {
+        // Získání celkového počtu hlášení v databázi
+        getDataSource().getCount(showOnlyWaitingReports, new OnItemsCountCheckedListener() {
             @Override
             public void onItemsCountChecked(int count) {
                 itemsCount = count;
                 pagesCount = calculatePagesCount();
 
-                Log.d(LOG_TAG_PAGES, "itemsCount: " + itemsCount);
-                Log.d(LOG_TAG_PAGES, "pagesCount: " + pagesCount);
-                Log.d(LOG_TAG_PAGES, "page: " + page);
-
-                getDataSource().getPage(getOffset(), ITEMS_PER_PAGE, new OnItemsLoadedListener() {
-                    @Override
-                    public void onItemsLoaded(final ArrayList<Report> loadedItems) {
-                        items = new ArrayList<>(loadedItems);
-                        updateFragments();
-                        if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(loadedItems);
-                    }
-                });
+                if (showOnlyWaitingReports) {
+                    getDataSource().getPageWaitingItems(getOffset(), ITEMS_PER_PAGE, new OnItemsLoadedListener() {
+                        @Override
+                        public void onItemsLoaded(ArrayList<Report> waitingItems) {
+                            items = new ArrayList<>(waitingItems);
+                            updateFragments();
+                            if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(items);
+                        }
+                    });
+                } else {
+                    getDataSource().getPage(getOffset(), ITEMS_PER_PAGE, new OnItemsLoadedListener() {
+                        @Override
+                        public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                            items = new ArrayList<>(loadedItems);
+                            updateFragments();
+                            if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(items);
+                        }
+                    });
+                }
             }
         });
     }
 
     public void updateFragments() {
         if (fragmentItems != null) fragmentItems.updateFragment();
-        if (fragmentMain != null) fragmentMain.updateLastReportInfo();
+        if (fragmentMain != null) fragmentMain.updateInfo();
         if (fragmentTimer != null) fragmentTimer.updateViews();
     }
 
@@ -462,17 +475,19 @@ public class MainActivity extends AppCompatActivity implements
         else return (page * ITEMS_PER_PAGE) - ITEMS_PER_PAGE;
     }
 
-    public void pageUp() {
+    public void pageUp(OnNewPageLoadedListener listener) {
         if (page < pagesCount) {
             page += 1;
             updateItems(null);
+            if (listener != null) listener.onNewPageLoaded();
         }
     }
 
-    public void pageDown() {
+    public void pageDown(OnNewPageLoadedListener listener) {
         if (page > 1) {
             page -= 1;
             updateItems(null);
+            if (listener != null) listener.onNewPageLoaded();
         }
     }
 
@@ -485,7 +500,7 @@ public class MainActivity extends AppCompatActivity implements
         return this.hours >= 0 && this.minutes >= 0;
     }
 
-    public void setDateData(int day, int month, int year, int messageType) {
+    public void setDateData(int day, int month, int year) {
         this.day = day;
         this.month = month;
         this.year = year;
@@ -506,6 +521,7 @@ public class MainActivity extends AppCompatActivity implements
     public long getTimeInMillis() {
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, day, hours, minutes, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
     }
 
@@ -574,39 +590,6 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 });
     }
-
-    /*
-    // Nastavení časovače pro kontrolu odeslání a doručení následujícího hlášení
-    public void setTimerForError(final Report report) {
-
-        Log.d(LOG_TAG_SMS, "(114) MainActivity - setTimerForError()");
-        Log.d(LOG_TAG_SMS, LOG_TAB + "report ID: " + report.getId());
-
-        getDataSource().updateReportValue(
-                report.getId(),
-                new String[]{DbHelper.COLUMN_ERROR_REQUEST_CODE},
-                new long[]{report.getRequestCodeForErrorAlarm()},
-                null);
-
-        Intent intent = new Intent(MainActivity.this, TimerReceiver.class);
-        intent.putExtra("report_id", report.getId());
-
-        //Příznak pro Receiver, že jde o budík pro kontrolu odeslání nebo doručení hlášení
-        intent.putExtra("alarm_check_error", 1);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                MainActivity.this,
-                report.getRequestCodeForErrorAlarm(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-
-        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.set(
-                AlarmManager.RTC_WAKEUP,
-                report.getTime() + TIME_FOR_CONTROL,
-                pendingIntent);
-    }
-    */
 
     // Zrušení časovače pro odeslání hlášení
     // updateDatabase: aktualizace není potřeba, když bude hlášení následně smazáno z databáze
@@ -737,7 +720,7 @@ public class MainActivity extends AppCompatActivity implements
                     .setListener(new YesNoSelectedListener() {
                         @Override
                         public void yesSelected() {
-                            showFragment(FRAGMENT_SETTINGS_NAME);
+                            showFragment(FRAGMENT_SETTINGS_NAME, null);
                         }
 
                         @Override
@@ -1069,6 +1052,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public void setPage(int page) {
         this.page = page;
+    }
+
+    public boolean isShowOnlyWaitingReports() {
+        return showOnlyWaitingReports;
+    }
+
+    public void setShowOnlyWaitingReports(boolean showOnlyWaitingReports) {
+        this.showOnlyWaitingReports = showOnlyWaitingReports;
     }
 
     private void initStetho() {

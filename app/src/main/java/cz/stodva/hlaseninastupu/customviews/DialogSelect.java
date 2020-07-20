@@ -2,9 +2,12 @@ package cz.stodva.hlaseninastupu.customviews;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -60,6 +63,8 @@ public class DialogSelect extends Dialog {
         });
 
         addItems();
+
+        if(message == null) labelMessage.setVisibility(View.GONE);
     }
 
     private void addItems() {
@@ -70,8 +75,14 @@ public class DialogSelect extends Dialog {
             newLabel = new TextView(context);
             newLabel.setText(items[i]);
             newLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-            newLabel.setPadding(10, 10, 10, 10);
-            newLabel.setTextColor(context.getResources().getColor(R.color.colorPrimary));
+            newLabel.setPadding(15, 15, 15, 15);
+            newLabel.setTextColor(Color.BLACK/*context.getResources().getColor(R.color.colorPrimary)*/);
+            newLabel.setAllCaps(true);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, 10, 0, 10);
+            newLabel.setLayoutParams(lp);
+            newLabel.setGravity(Gravity.CENTER_HORIZONTAL);
+            newLabel.setBackgroundResource(R.drawable.bg_dialog_select_item);
             newLabel.setOnClickListener(clickListener);
 
             layoutItems.addView(newLabel);
