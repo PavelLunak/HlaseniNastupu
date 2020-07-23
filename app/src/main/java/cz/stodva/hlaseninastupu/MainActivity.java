@@ -58,6 +58,7 @@ import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
+import cz.stodva.hlaseninastupu.listeners.OnIdsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnNewPageLoadedListener;
@@ -100,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements
     int hours = -1;
     int minutes = -1;
 
-    boolean showOnlyWaitingReports;
+    //boolean showOnlyWaitingReports;
 
     public ArrayList<Report> items;
     public Report actualReport;
@@ -144,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements
         outState.putInt("itemsCount", itemsCount);
         outState.putInt("page", page);
 
-        outState.putBoolean("showOnlyWaitingReports", showOnlyWaitingReports);
+        //outState.putBoolean("showOnlyWaitingReports", showOnlyWaitingReports);
     }
 
     @Override
@@ -163,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements
         itemsCount = savedInstanceState.getInt("itemsCount");
         page = savedInstanceState.getInt("page");
 
-        showOnlyWaitingReports = savedInstanceState.getBoolean("showOnlyWaitingReports", false);
+        //showOnlyWaitingReports = savedInstanceState.getBoolean("showOnlyWaitingReports", false);
     }
 
     @Override
@@ -215,27 +216,49 @@ public class MainActivity extends AppCompatActivity implements
         imgClearDatabase.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO při odstraňování zrušit i nastavená hlášení!!!! DODĚLAT!!!!
+                getDataSource().getWaitingItemsCount(new OnItemsCountCheckedListener() {
+                    @Override
+                    public void onItemsCountChecked(int count) {
+                        String message = "Opravdu vymazat historii hlášení z databáze?";
 
-                DialogYesNo.createDialog(MainActivity.this)
-                        .setTitle("")
-                        .setMessage("Odstraněním všech hlášení budou zrušena i neodeslaná hlášení. Opravdu vymazat všechna hlášení z databáze?")
-                        .setListener(new YesNoSelectedListener() {
-                            @Override
-                            public void yesSelected() {
-                                getDataSource().clearTable(new OnDatabaseClearedListener() {
+                        if (count > 0) {
+                            message += "\n\n";
+                            message += "Odstraněním všech hlášení budou zrušena i neodeslaná hlášení (čekajících hlášení: " + count + ").";
+                        }
+
+                        DialogYesNo.createDialog(MainActivity.this)
+                                .setTitle("")
+                                .setMessage(message)
+                                .setListener(new YesNoSelectedListener() {
                                     @Override
-                                    public void onDatabaseCleared() {
-                                        updateItems(null);
-                                    }
-                                });
-                            }
+                                    public void yesSelected() {
+                                        getDataSource().getWaitingItems(new OnItemsLoadedListener() {
+                                            @Override
+                                            public void onItemsLoaded(ArrayList<Report> loadedItems) {
+                                                Log.d(LOG_TAG, "ID čekajících hlášení, která budou před smazáním deaktivována:");
 
-                            @Override
-                            public void noSelected() {
-                            }
-                        })
-                        .show();
+                                                for (Report report : loadedItems) {
+                                                    Log.d(LOG_TAG, "" + report.getId());
+                                                    //cancelTimer(report, false);
+                                                }
+
+                                                /*
+                                                getDataSource().clearTable(new OnDatabaseClearedListener() {
+                                                    @Override
+                                                    public void onDatabaseCleared() {
+                                                        updateItems(null);
+                                                    }
+                                                });
+                                                */
+                                            }
+                                        });
+                                    }
+
+                                    @Override public void noSelected() {}
+                                })
+                                .show();
+                    }
+                });
             }
         });
 
@@ -325,8 +348,12 @@ public class MainActivity extends AppCompatActivity implements
             fragmentSettings = (FragmentSettings) fragmentManager.findFragmentByTag(FRAGMENT_SETTINGS_NAME);
 
             if (fragmentSettings != null) {
-                fragmentSettings.saveData();
-                super.onBackPressed();
+                if (fragmentSettings.isBackPressed()) {
+                    super.onBackPressed();
+                    return;
+                }
+
+                fragmentSettings.onBackPressed();
                 return;
             }
         }
@@ -428,13 +455,13 @@ public class MainActivity extends AppCompatActivity implements
 
     public void updateItems(final OnItemsLoadedListener onItemsLoadedListener) {
         // Získání celkového počtu hlášení v databázi
-        getDataSource().getCount(showOnlyWaitingReports, new OnItemsCountCheckedListener() {
+        getDataSource().getCount(getAppSettings().isShowOnlyActiveReports(), new OnItemsCountCheckedListener() {
             @Override
             public void onItemsCountChecked(int count) {
                 itemsCount = count;
                 pagesCount = calculatePagesCount();
 
-                if (showOnlyWaitingReports) {
+                if (getAppSettings().isShowOnlyActiveReports()) {
                     getDataSource().getPageWaitingItems(getOffset(), ITEMS_PER_PAGE, new OnItemsLoadedListener() {
                         @Override
                         public void onItemsLoaded(ArrayList<Report> waitingItems) {
@@ -974,6 +1001,10 @@ public class MainActivity extends AppCompatActivity implements
         return appSettings;
     }
 
+    public void updateAppSettings(Context context) {
+        appSettings = PrefsUtils.getAppSettings(context);
+    }
+
     public DataSource getDataSource() {
         if (dataSource == null) dataSource = new DataSource(this);
         return dataSource;
@@ -1054,6 +1085,7 @@ public class MainActivity extends AppCompatActivity implements
         this.page = page;
     }
 
+    /*
     public boolean isShowOnlyWaitingReports() {
         return showOnlyWaitingReports;
     }
@@ -1061,6 +1093,7 @@ public class MainActivity extends AppCompatActivity implements
     public void setShowOnlyWaitingReports(boolean showOnlyWaitingReports) {
         this.showOnlyWaitingReports = showOnlyWaitingReports;
     }
+    */
 
     private void initStetho() {
         Stetho.InitializerBuilder initializerBuilder = Stetho.newInitializerBuilder(this);
@@ -1195,26 +1228,28 @@ public class MainActivity extends AppCompatActivity implements
             Cursor cursor;
             ContentResolver cr = getContentResolver();
 
-            try {
-                Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
-                if (null != cur && cur.getCount() > 0) {
-                    cur.moveToFirst();
-                }
+            if (requestCode == REQUEST_SELECT_CONTACT) {
+                try {
+                    Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+                    if (null != cur && cur.getCount() > 0) {
+                        cur.moveToFirst();
+                    }
 
-                if (cur.getCount() > 0) {
-                    cursor = getContentResolver().query(uri, null, null, null, null);
-                    if (null != cursor && cursor.getCount() > 0) {
-                        cursor.moveToFirst();
-                        String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-                        String phoneNo = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    if (cur.getCount() > 0) {
+                        cursor = getContentResolver().query(uri, null, null, null, null);
+                        if (null != cursor && cursor.getCount() > 0) {
+                            cursor.moveToFirst();
+                            String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                            String phoneNo = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
 
-                        if (fragmentSettings != null) {
-                            fragmentSettings.setContact(phoneNo, name);
+                            if (fragmentSettings != null) {
+                                fragmentSettings.setContact(phoneNo, name);
+                            }
                         }
                     }
+                } catch (IndexOutOfBoundsException e) {
+                    e.printStackTrace();
                 }
-            } catch (IndexOutOfBoundsException e) {
-                e.printStackTrace();
             }
         }
     }

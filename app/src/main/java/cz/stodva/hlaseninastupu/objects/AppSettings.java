@@ -3,9 +3,12 @@ package cz.stodva.hlaseninastupu.objects;
 public class AppSettings {
     private String sap;
     private String phoneNumber;
-    String contactName;
+    private String contactName;
     private String startMessage;
     private String endMessage;
+
+    private boolean showOnlyActiveReports;
+    private boolean showItemDetails;
 
     public String getSap() {
         return sap;
@@ -45,5 +48,21 @@ public class AppSettings {
 
     public void setEndMessage(String endMessage) {
         this.endMessage = endMessage;
+    }
+
+    public boolean isShowOnlyActiveReports() {
+        return showOnlyActiveReports;
+    }
+
+    public void setShowOnlyActiveReports(boolean showOnlyActiveReports) {
+        this.showOnlyActiveReports = showOnlyActiveReports;
+    }
+
+    public boolean isShowItemDetails() {
+        return showItemDetails;
+    }
+
+    public void setShowItemDetails(boolean showItemDetails) {
+        this.showItemDetails = showItemDetails;
     }
 }

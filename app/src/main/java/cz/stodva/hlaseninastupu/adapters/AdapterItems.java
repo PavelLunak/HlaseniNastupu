@@ -1,32 +1,23 @@
 package cz.stodva.hlaseninastupu.adapters;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
-import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogSelect;
-import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
-import cz.stodva.hlaseninastupu.database.DbHelper;
 import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
-import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
-import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
-import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
@@ -45,7 +36,8 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         TextView labelMessage;
         ImageView img;
 
-        // TEST
+        // Detaily hlášení (pro ladění aplikace)
+        ConstraintLayout layoutDetails;
         TextView labelId;
         TextView labelTime;
         TextView labelMsgType;
@@ -81,7 +73,8 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         vh.img = v.findViewById(R.id.img);
 
 
-        // TEST
+        // Detaily hlášení (pro ladění aplikace)
+        vh.layoutDetails = v.findViewById(R.id.layoutDetails);
         vh.labelId = v.findViewById(R.id.labelId);
         vh.labelTime = v.findViewById(R.id.labelTime);
         vh.labelMsgType = v.findViewById(R.id.labelMsgType);
@@ -150,7 +143,6 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
                                     activity.actualReport = reportToUpdate;
                                     Bundle args = new Bundle();
                                     args.putBoolean("use", true);
-                                    //args.putParcelable("reportToUpdate", reportToUpdate);
                                     activity.showFragment(FRAGMENT_TIMER_NAME, args);
                                 }
                             }
@@ -168,23 +160,28 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         holder.labelMessage.setOnLongClickListener(onLongClickListener);
         holder.img.setOnLongClickListener(onLongClickListener);
 
-        // TEST
-        holder.labelId.setOnLongClickListener(onLongClickListener);
-        holder.labelTime.setOnLongClickListener(onLongClickListener);
-        holder.labelMsgType.setOnLongClickListener(onLongClickListener);
-        holder.labelSent.setOnLongClickListener(onLongClickListener);
-        holder.labelDelivered.setOnLongClickListener(onLongClickListener);
-        holder.labelCodeAlarm.setOnLongClickListener(onLongClickListener);
-        holder.labelCodeError.setOnLongClickListener(onLongClickListener);
+        // Detaily hlášení (pro ladění aplikace)
+        if (activity.getAppSettings().isShowItemDetails()) {
+            holder.layoutDetails.setVisibility(View.VISIBLE);
 
-        // TEST
-        holder.labelId.setText("" + report.getId());
-        holder.labelTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
-        holder.labelMsgType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "Nástup" : "Konec");
-        holder.labelSent.setText(AppUtils.timeToString(report.getSentTime(), AppConstants.REPORT_PHASE_SEND));
-        holder.labelDelivered.setText(AppUtils.timeToString(report.getDeliveryTime(), AppConstants.REPORT_PHASE_DELIVERY));
-        holder.labelCodeAlarm.setText("" + report.getAlarmRequestCode());
-        holder.labelCodeError.setText("" + report.getRequestCodeForErrorAlarm());
+            holder.labelId.setOnLongClickListener(onLongClickListener);
+            holder.labelTime.setOnLongClickListener(onLongClickListener);
+            holder.labelMsgType.setOnLongClickListener(onLongClickListener);
+            holder.labelSent.setOnLongClickListener(onLongClickListener);
+            holder.labelDelivered.setOnLongClickListener(onLongClickListener);
+            holder.labelCodeAlarm.setOnLongClickListener(onLongClickListener);
+            holder.labelCodeError.setOnLongClickListener(onLongClickListener);
+
+            holder.labelId.setText("" + report.getId());
+            holder.labelTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
+            holder.labelMsgType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "Nástup" : "Konec");
+            holder.labelSent.setText(AppUtils.timeToString(report.getSentTime(), AppConstants.REPORT_PHASE_SEND));
+            holder.labelDelivered.setText(AppUtils.timeToString(report.getDeliveryTime(), AppConstants.REPORT_PHASE_DELIVERY));
+            holder.labelCodeAlarm.setText("" + report.getAlarmRequestCode());
+            holder.labelCodeError.setText("" + report.getRequestCodeForErrorAlarm());
+        } else {
+            holder.layoutDetails.setVisibility(View.GONE);
+        }
 
         // Moc velký časový rozdíl mezi odesláním a doručením
         if ((report.getDeliveryTime() - report.getSentTime()) >= TIME_FOR_CONTROL) {

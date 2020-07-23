@@ -22,6 +22,7 @@ import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.adapters.AdapterItems;
 import cz.stodva.hlaseninastupu.listeners.OnNewPageLoadedListener;
 import cz.stodva.hlaseninastupu.utils.Animators;
+import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 
 public class FragmentItems extends Fragment {
@@ -29,7 +30,7 @@ public class FragmentItems extends Fragment {
     RecyclerView recyclerView;
     TextView labelPagesCount, labelTotalItemsCount, labelNoItems;
     ImageView imgArrowLeft, imgArrowRight;
-    CheckBox chbFilter;
+    CheckBox chbFilter, chbDetails;
 
     MainActivity activity;
     AdapterItems adapter;
@@ -53,6 +54,7 @@ public class FragmentItems extends Fragment {
         imgArrowLeft = view.findViewById(R.id.imgArrowLeft);
         imgArrowRight = view.findViewById(R.id.imgArrowRight);
         chbFilter = view.findViewById(R.id.chbFilter);
+        chbDetails = view.findViewById(R.id.chbDetails);
 
         return view;
     }
@@ -60,6 +62,9 @@ public class FragmentItems extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        chbFilter.setChecked(activity.getAppSettings().isShowOnlyActiveReports());
+        chbDetails.setChecked(activity.getAppSettings().isShowItemDetails());
 
         imgArrowLeft.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -94,19 +99,42 @@ public class FragmentItems extends Fragment {
         chbFilter.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                PrefsUtils.saveAppSettings(
+                        activity,
+                        chbFilter.isChecked(),
+                        chbDetails.isChecked());
+
+                activity.updateAppSettings(activity);
                 activity.setPage(1);
-                activity.setShowOnlyWaitingReports(isChecked);
                 activity.updateItems(null);
             }
         });
 
+        chbDetails.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                PrefsUtils.saveAppSettings(
+                        activity,
+                        chbFilter.isChecked(),
+                        chbDetails.isChecked());
+
+                activity.updateAppSettings(activity);
+                updateFragment();
+            }
+        });
+
         updateAdapter();
-        chbFilter.setChecked(activity.isShowOnlyWaitingReports());
     }
 
     public void updateAdapter() {
         if (recyclerView == null) return;
+        updateNoItemsLabel();
+        adapter = new AdapterItems(activity);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+    }
 
+    public void updateNoItemsLabel() {
         if (activity.getItems() == null) {
             labelNoItems.setVisibility(View.VISIBLE);
         } else if (activity.getItems().isEmpty()) {
@@ -114,15 +142,11 @@ public class FragmentItems extends Fragment {
         } else {
             labelNoItems.setVisibility(View.GONE);
         }
-
-        adapter = new AdapterItems(activity);
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
     }
 
     public void updatePageInfo() {
-        labelTotalItemsCount.setText((activity.isShowOnlyWaitingReports() ? "Počet aktivních hlášení: " : "Počet uložených hlášení: ") + activity.getItemsCount());
-        labelPagesCount.setText("Stránka: " + activity.getPage() + "/" + activity.getPagesCount());
+        labelTotalItemsCount.setText((activity.getAppSettings().isShowOnlyActiveReports() ? "Počet aktivních hlášení: " : "Počet uložených hlášení: ") + activity.getItemsCount());
+        labelPagesCount.setText("Stránka: " + activity.getPage() + "/" + (activity.getPagesCount() > 0 ? activity.getPagesCount() : "1"));
 
         if (activity.getPage() <= 1) imgArrowLeft.setVisibility(View.GONE);
         else imgArrowLeft.setVisibility(View.VISIBLE);
@@ -134,6 +158,7 @@ public class FragmentItems extends Fragment {
     public void updateFragment() {
         updatePageInfo();
         if (adapter != null) adapter.notifyDataSetChanged();
+        updateNoItemsLabel();
     }
 
     public AdapterItems getAdapter() {

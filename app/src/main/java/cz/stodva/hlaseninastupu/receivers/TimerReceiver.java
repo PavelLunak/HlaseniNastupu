@@ -71,7 +71,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
 
             // BYLO HLÁŠENÍ ODESLÁNO? POKUD ANO, ZKONTROLUJEME JEHO DORUČENÍ
             if (report.getSentTime() > NONE) {
-                if (report.getDeliveryTime() == WAITING) {
+                if (!report.isDelivered()) {
                     Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nebylo doručeno");
                     errMsg = "Hlášení nebylo v nastaveném časovém limitu doručeno!";
                     errorType = ERROR_TYPE_NO_DELIVERED;
@@ -90,13 +90,6 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                 WakeLocker.release();
                 return;
             }
-
-            // Nastavení doručení na neúspěšné pro případ nedoručení hlášení
-            dataSource.updateReportValue(
-                    report.getId(),
-                    new String[] {DbHelper.COLUMN_DELIVERED},
-                    new long[] {UNSUCCESFUL},
-                    null);
 
             telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 

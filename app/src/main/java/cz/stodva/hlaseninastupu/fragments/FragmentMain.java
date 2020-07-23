@@ -127,13 +127,15 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         if (!activity.checkSmsPermissionGranted()) return;
 
+        boolean missingContactName = activity.getAppSettings().getContactName().equals("");
+        String cName = "";
+        if (!missingContactName) cName = " (" + activity.getAppSettings().getContactName() + ")";
+
         DialogYesNo.createDialog(activity)
                 .setTitle(messageType == MESSAGE_TYPE_START ? "Nástup" : "Konec")
                 .setMessage("Odeslat na tel. číslo " +
                         activity.getPhoneNumber() +
-                        " (" +
-                        activity.getAppSettings().getContactName() +
-                        ")" +
+                        cName +
                         " hlášení " +
                         (messageType == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"))
                 .setListener(new YesNoSelectedListener() {
@@ -184,8 +186,6 @@ public class FragmentMain extends Fragment implements AppConstants {
 
         SmsManager sm = SmsManager.getDefault();
         sm.sendTextMessage(phone, null, text, pi1, pi2);
-
-        //activity.setTimerForError(activity.actualReport);
     }
 
     public void updateInfo() {
@@ -200,6 +200,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                     titleLastReport.setText("Poslední hlášení");
                     labelLastMessageType.setText("-----");
                     labelLastReportTime.setText("--.--.---- --:--");
+                    labelLastMessage.setVisibility(View.GONE);
 
                     imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
                     imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));

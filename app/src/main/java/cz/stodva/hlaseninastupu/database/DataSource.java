@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
+import cz.stodva.hlaseninastupu.listeners.OnIdsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
@@ -295,6 +296,72 @@ public class DataSource implements AppConstants {
     }
 
     // Získání všech hlášení, která čekají na odeslání nebo doručení
+    public void getWaitingItems(OnItemsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getWaitingItems()" + LOG_UNDERLINED);
+        open();
+        ArrayList<Report> toReturn = new ArrayList<>();
+        Report report;
+        Cursor cursor;
+
+        try {
+            cursor = database.query(
+                    DbHelper.TABLE_REPORTS,
+                    null,
+                    DbHelper.COLUMN_SENT + " = " + ("" + WAITING) + " OR " + DbHelper.COLUMN_DELIVERED + " = " + ("" + WAITING),
+                    null,
+                    null,
+                    null,
+                    null);
+
+            cursor.moveToFirst();
+
+            for(int i = 0, count = cursor.getCount(); i < count; i ++) {
+                report = cursorToReport(cursor);
+                toReturn.add(report);
+                if(cursor.isLast()) break;
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        } catch (Exception e) {
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        }
+    }
+
+    // Získání ID všech hlášení, která čekají na odeslání nebo doručení
+    public void getAllWaitingItemsIds(OnIdsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getAllWaitingItems()" + LOG_UNDERLINED);
+        open();
+        ArrayList<Integer> toReturn = new ArrayList<>();
+        Cursor cursor;
+
+        try {
+            cursor = database.query(
+                    DbHelper.TABLE_REPORTS,
+                    new String[] {DbHelper.COLUMN_ID},
+                    DbHelper.COLUMN_SENT + " = " + ("" + WAITING) + " OR " + DbHelper.COLUMN_DELIVERED + " = " + ("" + WAITING),
+                    null,
+                    null,
+                    null,
+                    null);
+
+            cursor.moveToFirst();
+
+            for(int i = 0, count = cursor.getCount(); i < count; i ++) {
+                toReturn.add(cursor.getInt(cursor.getColumnIndex(DbHelper.COLUMN_ID)));
+                if (cursor.isLast()) break;
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+            if (listener != null) listener.onIdsLoaded(toReturn);
+        } catch (Exception e) {
+            if (listener != null) listener.onIdsLoaded(toReturn);
+        }
+    }
+
+    // Získání následujících hlášení (dle nastavení stránkování), která čekají na odeslání nebo doručení
     public void getPageWaitingItems(int offset, int itemsPerPage, OnItemsLoadedListener listener) {
         Log.d(LOG_TAG, "DataSource - getAllItems()" + LOG_UNDERLINED);
         open();

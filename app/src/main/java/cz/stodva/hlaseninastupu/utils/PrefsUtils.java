@@ -19,7 +19,14 @@ public class PrefsUtils implements AppConstants {
         return sdf.format(time);
     }
 
-    public static void saveAppSettings(Context context, String sap, String phone, String contactName, String startString, String endString) {
+    public static void saveAppSettings(
+            Context context,
+            String sap,
+            String phone,
+            String contactName,
+            String startString,
+            String endString) {
+
         SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
 
@@ -28,6 +35,20 @@ public class PrefsUtils implements AppConstants {
         editor.putString("settings_contact_name", contactName);
         editor.putString("settings_start_text", startString);
         editor.putString("settings_end_text", endString);
+
+        editor.commit();
+    }
+
+    public static void saveAppSettings(
+            Context context,
+            boolean showOnlyActiveReports,
+            boolean showItemDetails) {
+
+        SharedPreferences sp = context.getSharedPreferences("hlaseni_nastupu_app", context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+
+        editor.putBoolean("settings_show_only_active_reports", showOnlyActiveReports);
+        editor.putBoolean("settings_show_item_details", showItemDetails);
 
         editor.commit();
     }
@@ -42,6 +63,8 @@ public class PrefsUtils implements AppConstants {
         appSettings.setContactName(sp.getString("settings_contact_name", ""));
         appSettings.setStartMessage(sp.getString("settings_start_text", ""));
         appSettings.setEndMessage(sp.getString("settings_end_text", ""));
+        appSettings.setShowOnlyActiveReports(sp.getBoolean("settings_show_only_active_reports", false));
+        appSettings.setShowItemDetails(sp.getBoolean("settings_show_item_details", false));
 
         return appSettings;
     }

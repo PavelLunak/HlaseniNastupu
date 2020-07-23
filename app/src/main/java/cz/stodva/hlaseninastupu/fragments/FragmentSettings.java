@@ -4,9 +4,11 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -17,6 +19,8 @@ import androidx.fragment.app.Fragment;
 
 import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
+import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.PrefsUtils;
@@ -26,8 +30,17 @@ public class FragmentSettings extends Fragment implements AppConstants {
     EditText etSap, etPhone, etMessageStart, etMessageEnd;
     TextView labelInvalidPhone, labelWarning, labelVersion, labelContactName;
     ImageView imgPerson;
+    Button btnSave, btnCancel;
 
     MainActivity activity;
+
+    String sap = "";
+    String phone = "";
+    String startMsg = "";
+    String endMsg = "";
+    String contactName = "";
+
+    boolean backPressed;
 
     TextWatcher textWatcher = new TextWatcher() {
         @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -35,6 +48,8 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
         @Override
         public void afterTextChanged(Editable s) {
+            labelContactName.setText("");
+            labelContactName.setVisibility(View.GONE);
             checkData();
         }
     };
@@ -63,6 +78,9 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
         imgPerson = view.findViewById(R.id.imgPerson);
 
+        btnSave = view.findViewById(R.id.btnSave);
+        btnCancel = view.findViewById(R.id.btnCancel);
+
         return view;
     }
 
@@ -71,10 +89,17 @@ public class FragmentSettings extends Fragment implements AppConstants {
         super.onViewCreated(view, savedInstanceState);
 
         activity.getAppSettings();
-        etSap.setText(activity.getAppSettings().getSap());
-        etPhone.setText(activity.getAppSettings().getPhoneNumber());
-        etMessageStart.setText(activity.getAppSettings().getStartMessage());
-        etMessageEnd.setText(activity.getAppSettings().getEndMessage());
+
+        sap = activity.getAppSettings().getSap();
+        phone = activity.getAppSettings().getPhoneNumber();
+        startMsg = activity.getAppSettings().getStartMessage();
+        endMsg = activity.getAppSettings().getEndMessage();
+        contactName = activity.getAppSettings().getContactName();
+
+        etSap.setText(sap);
+        etPhone.setText(phone);
+        etMessageStart.setText(startMsg);
+        etMessageEnd.setText(endMsg);
 
         etSap.addTextChangedListener(textWatcher);
         etPhone.addTextChangedListener(textWatcher);
@@ -82,7 +107,29 @@ public class FragmentSettings extends Fragment implements AppConstants {
         etMessageEnd.addTextChangedListener(textWatcher);
 
         labelVersion.setText("Verze: " + activity.getAppVersion());
-        labelContactName.setText(activity.getAppSettings().getContactName());
+
+        if (contactName.equals("")) {
+            labelContactName.setVisibility(View.GONE);
+        } else {
+            labelContactName.setVisibility(View.VISIBLE);
+            labelContactName.setText(contactName);
+        }
+
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveData();
+                activity.onBackPressed();
+            }
+        });
+
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hasUpdatesAfterRequestClose();
+                backPressed = true;
+            }
+        });
 
         imgPerson.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,10 +145,6 @@ public class FragmentSettings extends Fragment implements AppConstants {
     }
 
     private void checkData() {
-        String sap = checkInput(etSap);
-        String msgStart = checkInput(etMessageStart);
-        String msgEnd = checkInput(etMessageEnd);
-
         etPhone.setHint(PHONE_NUMBER);
 
         if (!sap.equals("")) {
@@ -112,31 +155,81 @@ public class FragmentSettings extends Fragment implements AppConstants {
             if (etMessageEnd.getHint().toString().contains("KONEC")) etMessageEnd.setHint("Musí být vyplněno");
         }
 
-        if ((msgStart.equals("") || msgEnd.equals("")) && sap.equals("")) labelWarning.setVisibility(View.VISIBLE);
+        if ((startMsg.equals("") || endMsg.equals("")) && sap.equals("")) labelWarning.setVisibility(View.VISIBLE);
         else labelWarning.setVisibility(View.GONE);
 
-        if (validatePhoneNumber(etPhone.getText())) labelInvalidPhone.setVisibility(View.GONE);
-        else labelInvalidPhone.setVisibility(View.VISIBLE);
+        if (validatePhoneNumber(etPhone.getText())) {
+            labelInvalidPhone.setVisibility(View.GONE);
+        } else {
+            labelInvalidPhone.setVisibility(View.VISIBLE);
+        }
+    }
+
+    public void onBackPressed() {
+        backPressed = true;
+        hasUpdatesAfterRequestClose();
+    }
+
+    public boolean hasUpdatesAfterRequestClose() {
+
+        Log.d("safawc", "hasUpdatesAfterRequestClose()");
+
+        Log.d("safawc", "etSap: " + etSap.getText().toString());
+        Log.d("safawc", "etPhone: " + etPhone.getText().toString());
+        Log.d("safawc", "etMessageStart: " + etMessageStart.getText().toString());
+        Log.d("safawc", "etMessageEnd: " + etMessageEnd.getText().toString());
+
+        Log.d("safawc", "sap: " + sap);
+        Log.d("safawc", "phone: " + phone);
+        Log.d("safawc", "startMsg: " + startMsg);
+        Log.d("safawc", "endMsg: " + endMsg);
+
+        boolean result = false;
+
+        if (!checkInput(etSap).equals(sap.trim())) result = true;
+        if (!checkInput(etPhone).equals(phone.trim())) result = true;
+        if (!checkInput(etMessageStart).equals(startMsg.trim())) result = true;
+        if (!checkInput(etMessageEnd).equals(endMsg.trim())) result = true;
+
+        if (result) {
+            DialogYesNo.createDialog(activity)
+                    .setTitle("Upozornění")
+                    .setMessage("Uložit provedené změny?")
+                    .setListener(new YesNoSelectedListener() {
+                        @Override
+                        public void yesSelected() {
+                            saveData();
+                            activity.onBackPressed();
+                        }
+
+                        @Override public void noSelected() {
+                            activity.onBackPressed();
+                        }
+                    }).show();
+        } else {
+            activity.onBackPressed();
+        }
+
+        return result;
     }
 
     private String checkInput(EditText et) {
         if (et == null) return "";
         if (et.getText() == null) return "";
-        if (et.getText() == null) return "";
 
-        return et.getText().toString();
+        return et.getText().toString().trim();
     }
 
     public void saveData() {
-        String sap = checkInput(etSap);
-        String phone = checkInput(etPhone);
-        String startMsg = checkInput(etMessageStart);
-        String endMsg = checkInput(etMessageEnd);
-        String contactName;
+        sap = checkInput(etSap);
+        phone = checkInput(etPhone);
+        startMsg = checkInput(etMessageStart);
+        endMsg = checkInput(etMessageEnd);
 
         if (labelContactName.getText() != null) {
             if (labelContactName.getText().toString() != null) {
                 contactName = labelContactName.getText().toString();
+                if (contactName.equals("")) contactName = null;
             } else {
                 contactName = "";
             }
@@ -162,6 +255,8 @@ public class FragmentSettings extends Fragment implements AppConstants {
                 contactName,
                 startMsg,
                 endMsg);
+
+        activity.updateAppSettings(activity);
     }
 
     private boolean validatePhoneNumber(Object object) {
@@ -205,6 +300,11 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
     public void setContact(String phone, String name) {
         etPhone.setText(phone);
+        labelContactName.setVisibility(View.VISIBLE);
         labelContactName.setText(name);
+    }
+
+    public boolean isBackPressed() {
+        return backPressed;
     }
 }

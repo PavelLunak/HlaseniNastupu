@@ -1,144 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_app"
-    android:orientation="vertical"
     android:padding="10dp">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@drawable/bg_app"
         android:orientation="vertical"
         android:padding="10dp">
 
-        <TextView
-            android:id="@+id/labelVersion"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="right"
-            android:text="TextView"
-            android:textColor="@color/text_color" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="10dp">
 
-        <TextView
-            android:id="@+id/textView80"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="SAP"
-            android:textColor="#FFE500" />
+            <TextView
+                android:id="@+id/labelVersion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="right"
+                android:text="TextView"
+                android:textColor="@color/text_color" />
 
-        <EditText
-            android:id="@+id/etSap"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="text"
-            android:textColor="@android:color/white" />
-
-        <TextView
-            android:id="@+id/textView6"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="Cílové telefonní číslo"
-            android:textColor="#FFE500" />
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <ImageView
-                android:id="@+id/imgPerson"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
-                android:layout_alignParentRight="true"
-                android:layout_centerVertical="true"
-                app:srcCompat="@drawable/ic_person" />
+            <TextView
+                android:id="@+id/textView80"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="SAP"
+                android:textColor="#FFE500" />
 
             <EditText
-                android:id="@+id/etPhone"
+                android:id="@+id/etSap"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="text"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="Cílové telefonní číslo"
+                android:textColor="#FFE500" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/imgPerson"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    app:srcCompat="@drawable/ic_person" />
+
+                <EditText
+                    android:id="@+id/etPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="10dp"
+                    android:layout_toLeftOf="@id/imgPerson"
+                    android:ems="10"
+                    android:hint="Musí být vyplněno"
+                    android:inputType="phone"
+                    android:textColor="@color/contact_color"
+                    android:textColorHint="@color/text_color_et_default"
+                    android:textStyle="bold" />
+
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/labelContactName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:text="TextView"
+                android:textColor="@color/contact_color" />
+
+            <TextView
+                android:id="@+id/labelInvalidPhone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="10dp"
-                android:layout_toLeftOf="@id/imgPerson"
+                android:gravity="right"
+                android:text="Chybný formát tel. čísla!"
+                android:textColor="#FF0000"
+                android:textSize="10sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/textView7"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="Text hlášení nástupu"
+                android:textColor="#FFE500" />
+
+            <EditText
+                android:id="@+id/etMessageStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:ems="10"
                 android:hint="Musí být vyplněno"
-                android:inputType="phone"
-                android:textColor="@color/contact_color"
-                android:textColorHint="@color/text_color_et_default"
-                android:textStyle="bold" />
+                android:inputType="textPersonName"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/text_color_et_default" />
 
-        </RelativeLayout>
+            <TextView
+                android:id="@+id/textView8"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                android:text="Text hlášení konce"
+                android:textColor="#FFE500" />
 
-        <TextView
-            android:id="@+id/labelContactName"
-            android:layout_width="match_parent"
+            <EditText
+                android:id="@+id/etMessageEnd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="Musí být vyplněno"
+                android:inputType="textPersonName"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/text_color_et_default" />
+
+            <TextView
+                android:id="@+id/labelWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:gravity="center_horizontal"
+                android:padding="10dp"
+                android:text="Pro správnou funkci aplikace je nutné nastavit text zpráv nebo zadat SAP. Po zadání sapu budou zprávy pro hlášení vygenerovány. Při nenastavených zprávách nebudou odeslána automatická hlášení!"
+                android:textColor="@color/text_color_et_hint"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:weightSum="1">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="20dp"
-            android:text="TextView"
-            android:textColor="@color/contact_color" />
+            android:layout_weight="0.5"
+            android:text="Zavřít" />
 
-        <TextView
-            android:id="@+id/labelInvalidPhone"
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="10dp"
-            android:gravity="right"
-            android:text="Chybný formát tel. čísla!"
-            android:textColor="#FF0000"
-            android:textSize="10sp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/textView7"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="Text hlášení nástupu"
-            android:textColor="#FFE500" />
-
-        <EditText
-            android:id="@+id/etMessageStart"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="Musí být vyplněno"
-            android:inputType="textPersonName"
-            android:textColor="@android:color/white"
-            android:textColorHint="@color/text_color_et_default" />
-
-        <TextView
-            android:id="@+id/textView8"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="Text hlášení konce"
-            android:textColor="#FFE500" />
-
-        <EditText
-            android:id="@+id/etMessageEnd"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:hint="Musí být vyplněno"
-            android:inputType="textPersonName"
-            android:textColor="@android:color/white"
-            android:textColorHint="@color/text_color_et_default" />
-
-        <TextView
-            android:id="@+id/labelWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:gravity="center_horizontal"
-            android:padding="10dp"
-            android:text="Pro správnou funkci aplikace je nutné nastavit text zpráv nebo zadat SAP. Po zadání sapu budou zprávy pro hlášení vygenerovány. Při nenastavených zprávách nebudou odeslána automatická hlášení!"
-            android:textColor="@color/text_color_et_hint"
-            android:textSize="12sp"
-            android:visibility="gone" />
+            android:layout_weight="0.5"
+            android:text="Uložit" />
     </LinearLayout>
 
-</ScrollView>
+</RelativeLayout>
