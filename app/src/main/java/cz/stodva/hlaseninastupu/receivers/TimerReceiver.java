@@ -45,6 +45,8 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
         dataSource.getReportById(reportId, new OnReportLoadedListener() {
             @Override
             public void onReportLoaded(Report report) {
+                Log.d(LOG_TAG_SMS, LOG_TAB + report.toString());
+
                 if (report != null) process(context, intent, report);
                 else Log.d(LOG_TAG_SMS, LOG_TAB + "NENALEZENO HLÁŠENÍ PODLE ID");
             }
@@ -65,7 +67,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
             // NEBYLO HLÁŠENÍ ODESLÁNO?
             if (report.getSentTime() == WAITING) {
                 Log.d(LOG_TAG_SMS, LOG_TAB + "(07) TimerReceiver - Nepodařilo se odeslat hlášení");
-                errMsg = "Nepodařilo se v nastaveném časovém limitu odeslat hlášení!";
+                errMsg = "Hlášení se nepodařilo odeslat!";
                 errorType = ERROR_TYPE_NO_SENT;
             }
 
@@ -73,7 +75,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
             if (report.getSentTime() > NONE) {
                 if (!report.isDelivered()) {
                     Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nebylo doručeno");
-                    errMsg = "Hlášení nebylo v nastaveném časovém limitu doručeno!";
+                    errMsg = "Hlášení nebylo doručeno!";
                     errorType = ERROR_TYPE_NO_DELIVERED;
                 }
             }
@@ -236,6 +238,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         am.cancel(pendingIntent);
 
+        /*
         dataSource.updateReportValue(
                 report.getId(),
                 new String[] {DbHelper.COLUMN_ERROR_REQUEST_CODE},
@@ -246,6 +249,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
                         report.setRequestCodeForErrorAlarm(NONE);
                     }
                 });
+        */
     }
 
     private String getPhoneNumber(Context context) {

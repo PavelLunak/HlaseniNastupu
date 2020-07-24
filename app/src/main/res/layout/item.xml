@@ -238,8 +238,25 @@
         android:layout_height="wrap_content"
         android:padding="5dp"
         android:text="TextView"
-        android:textColor="#D8FFCF"
+        android:textColor="#FF6500"
         app:layout_constraintEnd_toStartOf="@+id/img"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/labelDeliveryTime" />
+
+    <ImageView
+        android:id="@+id/imgWaitSend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/textView10"
+        app:layout_constraintStart_toEndOf="@+id/labelTimeOfSending"
+        app:srcCompat="@drawable/ic_hourglass_empty" />
+
+    <ImageView
+        android:id="@+id/imgWaitDelivery"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/textView11"
+        app:layout_constraintStart_toStartOf="@+id/imgWaitSend"
+        app:srcCompat="@drawable/ic_hourglass_empty" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

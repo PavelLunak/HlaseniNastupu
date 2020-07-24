@@ -35,6 +35,8 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         TextView labelTimeOfSending;
         TextView labelMessage;
         ImageView img;
+        ImageView imgWaitSend;
+        ImageView imgWaitDelivery;
 
         // Detaily hlášení (pro ladění aplikace)
         ConstraintLayout layoutDetails;
@@ -71,6 +73,8 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         vh.labelTimeOfSending = v.findViewById(R.id.labelTimeOfSending);
         vh.labelMessage = v.findViewById(R.id.labelMessage);
         vh.img = v.findViewById(R.id.img);
+        vh.imgWaitSend = v.findViewById(R.id.imgWaitSend);
+        vh.imgWaitDelivery = v.findViewById(R.id.imgWaitDelivery);
 
 
         // Detaily hlášení (pro ladění aplikace)
@@ -159,6 +163,9 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         holder.labelTimeOfSending.setOnLongClickListener(onLongClickListener);
         holder.labelMessage.setOnLongClickListener(onLongClickListener);
         holder.img.setOnLongClickListener(onLongClickListener);
+        holder.imgWaitSend.setOnLongClickListener(onLongClickListener);
+        holder.imgWaitDelivery.setOnLongClickListener(onLongClickListener);
+
 
         // Detaily hlášení (pro ladění aplikace)
         if (activity.getAppSettings().isShowItemDetails()) {
@@ -184,7 +191,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         }
 
         // Moc velký časový rozdíl mezi odesláním a doručením
-        if ((report.getDeliveryTime() - report.getSentTime()) >= TIME_FOR_CONTROL) {
+        if (((report.getDeliveryTime() - report.getSentTime()) >= TIME_FOR_CONTROL) && report.getRequestCodeForErrorAlarm() > NONE) {
             holder.labelDeliveryTime.setBackground(AppCompatResources.getDrawable(activity, R.drawable.bg_late_delivery));
             holder.labelDeliveryTime.setTextColor(activity.getResources().getColor(R.color.white));
         } else {
@@ -195,13 +202,33 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         holder.labelMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "Nástup" : "Konec");
         holder.labelReportTime.setText(AppUtils.timeToString(report.getTime(), AppConstants.REPORT_PHASE_NONE));
 
-        if (report.getSentTime() == 0) holder.labelTimeOfSending.setText("");
-        else
+        if (report.getSentTime() == NONE) {
+            holder.labelTimeOfSending.setText("");
+        } else {
             holder.labelTimeOfSending.setText(AppUtils.timeToString(report.getSentTime(), AppConstants.REPORT_PHASE_SEND));
 
-        if (report.getDeliveryTime() == 0) holder.labelDeliveryTime.setText("?");
-        else
+            if (report.getSentTime() == WAITING) {
+                holder.imgWaitSend.setVisibility(View.VISIBLE);
+                holder.labelTimeOfSending.setTextColor(activity.getResources().getColor(R.color.waiting_color));
+            } else {
+                holder.imgWaitSend.setVisibility(View.GONE);
+                holder.labelTimeOfSending.setTextColor(activity.getResources().getColor(R.color.white));
+            }
+        }
+
+        if (report.getDeliveryTime() == NONE) {
+            holder.labelDeliveryTime.setText("?");
+        } else {
             holder.labelDeliveryTime.setText(AppUtils.timeToString(report.getDeliveryTime(), AppConstants.REPORT_PHASE_DELIVERY));
+
+            if (report.getDeliveryTime() == WAITING) {
+                holder.imgWaitDelivery.setVisibility(View.VISIBLE);
+                holder.labelDeliveryTime.setTextColor(activity.getResources().getColor(R.color.waiting_color));
+            } else {
+                holder.imgWaitDelivery.setVisibility(View.GONE);
+                holder.labelDeliveryTime.setTextColor(activity.getResources().getColor(R.color.white));
+            }
+        }
 
         // VZHLED POLOŽKY --------------------------------------------------------------------------
         // Neúspěšné doručení hlášení

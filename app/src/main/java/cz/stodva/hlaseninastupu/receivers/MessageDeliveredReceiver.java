@@ -25,8 +25,8 @@ public class MessageDeliveredReceiver extends BroadcastReceiver {
 
             dataSource.updateReportValue(
                     reportId,
-                    new String[] {DbHelper.COLUMN_DELIVERED, DbHelper.COLUMN_REQUEST_CODE, DbHelper.COLUMN_IS_FAILED, DbHelper.COLUMN_IS_DELIVERED},
-                    new long[] {new Date().getTime(), AppConstants.NONE, 0, 1},
+                    new String[] {DbHelper.COLUMN_DELIVERED, /*DbHelper.COLUMN_REQUEST_CODE, */DbHelper.COLUMN_IS_FAILED, DbHelper.COLUMN_IS_DELIVERED},
+                    new long[] {new Date().getTime(), /*AppConstants.NONE, */0, 1},
                     null);
 
             // Odeslání informace o úspěšném odeslání hlášení do MainActivity (pokud je aplikace spuštěna)

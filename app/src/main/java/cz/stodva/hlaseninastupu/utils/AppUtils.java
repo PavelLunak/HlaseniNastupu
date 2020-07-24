@@ -17,8 +17,8 @@ public class AppUtils implements AppConstants {
         if (time == NONE) return "NONE";
 
         if (time == WAITING) {
-            if (reportPhase == REPORT_PHASE_SEND) return "Čekání na odeslání hlášení...";
-            if (reportPhase == REPORT_PHASE_DELIVERY) return "Čekání na potvrzení doručení hlášení...";
+            if (reportPhase == REPORT_PHASE_SEND) return "čekám...";
+            if (reportPhase == REPORT_PHASE_DELIVERY) return "čekám...";
         }
 
         if (time == UNSUCCESFUL) return "Chyba...";

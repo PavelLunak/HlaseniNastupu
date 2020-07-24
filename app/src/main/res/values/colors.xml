@@ -28,4 +28,6 @@
 
     <color name="failed_color">#E8A2BA</color>
     <color name="failed_color_item">#83012D</color>
+
+    <color name="waiting_color">#8AFFFFFF</color>
 </resources>

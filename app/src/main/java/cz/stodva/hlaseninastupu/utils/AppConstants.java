@@ -57,5 +57,5 @@ public interface AppConstants {
 
     String ACTION_REPORT_RESULT = "action_report_result";
 
-    int ITEMS_PER_PAGE = 2;
+    int ITEMS_PER_PAGE = 20;
 }
