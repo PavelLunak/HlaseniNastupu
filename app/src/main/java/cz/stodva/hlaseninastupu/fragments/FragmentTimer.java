@@ -167,33 +167,13 @@ public class FragmentTimer extends Fragment implements AppConstants {
 
                     // Test jestli není nastavován report v minulosti
                     if (activity.isInFuture(time)) {
-                        // Test jestli není nastaven report se stejným datem
+                        // Test jestli není nastaven report se stejným datem (neplatí pro případ editace hlášení)
                         activity.getDataSource().getReportByTime(time, new OnReportLoadedListener() {
                             @Override
                             public void onReportLoaded(Report loadedReport) {
                                 //Nenalezeno žádné hlášení se stejným časem
-                                if (loadedReport == null) {
-                                    if (!isEdit) {
-                                        if (activity.actualReport == null) {
-                                            activity.actualReport = new Report();
-                                            activity.actualReport.setMessageType(rbStart.isChecked() ? MESSAGE_TYPE_START : MESSAGE_TYPE_END);
-                                        }
-
-                                        activity.actualReport.setTime(activity.getTimeInMillis());
-                                        activity.actualReport.setSentTime(WAITING);
-                                        activity.actualReport.setDeliveryTime(WAITING);
-                                        activity.actualReport.setErrorAlert(chbErrorAlarm.isChecked());
-
-                                        activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
-                                            @Override
-                                            public void onReportAdded(Report addedReport) {
-                                                Log.d(LOG_TAG, "Nové hlášení bylo přidáno a získávám jeho ID, které je: " + addedReport.getId());
-                                                activity.actualReport.setId(addedReport.getId());
-                                                activity.setTimer(activity.actualReport);
-                                                activity.showFragment(FRAGMENT_MAIN_NAME, null);
-                                            }
-                                        });
-                                    } else {
+                                if (loadedReport == null || isEdit) {
+                                    if (isEdit) {
                                         // Zrušení původních časovačů
                                         activity.cancelTimer(activity.actualReport, false);
 
@@ -230,8 +210,27 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                                         });
                                                     }
                                                 });
-                                    }
+                                    } else {
+                                        if (activity.actualReport == null) {
+                                            activity.actualReport = new Report();
+                                            activity.actualReport.setMessageType(rbStart.isChecked() ? MESSAGE_TYPE_START : MESSAGE_TYPE_END);
+                                        }
 
+                                        activity.actualReport.setTime(activity.getTimeInMillis());
+                                        activity.actualReport.setSentTime(WAITING);
+                                        activity.actualReport.setDeliveryTime(WAITING);
+                                        activity.actualReport.setErrorAlert(chbErrorAlarm.isChecked());
+
+                                        activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
+                                            @Override
+                                            public void onReportAdded(Report addedReport) {
+                                                Log.d(LOG_TAG, "Nové hlášení bylo přidáno a získávám jeho ID, které je: " + addedReport.getId());
+                                                activity.actualReport.setId(addedReport.getId());
+                                                activity.setTimer(activity.actualReport);
+                                                activity.showFragment(FRAGMENT_MAIN_NAME, null);
+                                            }
+                                        });
+                                    }
                                 } else {
                                     DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Na zadaný čas je již nastaveno jiné hlášení...").show();
                                 }

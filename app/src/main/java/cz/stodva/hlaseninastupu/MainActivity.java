@@ -50,6 +50,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
+import cz.stodva.hlaseninastupu.customviews.DialogSelect;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
 import cz.stodva.hlaseninastupu.database.DataSource;
 import cz.stodva.hlaseninastupu.database.DbHelper;
@@ -59,6 +60,7 @@ import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
 import cz.stodva.hlaseninastupu.listeners.OnIdsLoadedListener;
+import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnNewPageLoadedListener;
@@ -101,8 +103,6 @@ public class MainActivity extends AppCompatActivity implements
     int hours = -1;
     int minutes = -1;
 
-    //boolean showOnlyWaitingReports;
-
     public ArrayList<Report> items;
     public Report actualReport;
 
@@ -125,6 +125,92 @@ public class MainActivity extends AppCompatActivity implements
             Log.d(AppConstants.LOG_TAG, "(103) report id: " + reportId);
 
             updateItems(null);
+        }
+    };
+
+    public View.OnLongClickListener onLongClickListener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+
+            final Report reportToUpdate = v.getTag() instanceof Report ? (Report) v.getTag() : items.get((int) v.getTag());
+            //final Report reportToUpdate = (Report) v.getTag();
+
+            AppUtils.vibrate(MainActivity.this);
+
+            ArrayList<String> items = new ArrayList();
+            items.add("Odstranit hlášení");
+            items.add("Použít hlášení");
+
+            // Automatické hlášení lze obnovit (čas hlášení je v budoucnu)
+            if (reportToUpdate.getSentTime() == CANCELED && reportToUpdate.getTime() > new Date().getTime()) {
+                items.add("Obnovit automatické hlášení");
+            }
+
+            // Automatické hlášení lze deaktivovat
+            if (reportToUpdate.getSentTime() == WAITING) {
+                items.add("Zrušit hlášení");
+                items.add("Upravit hlášení");
+            }
+
+            String[] itemsToArray = items.toArray(new String[items.size()]);
+
+            DialogSelect.createDialog(MainActivity.this)
+                    .setTitle("Úprava hlášení...")
+                    .setItems(itemsToArray)
+                    .setListener(new DialogSelect.OnDialogSelectItemSelectedListener() {
+                        @Override
+                        public void onDialogSelectItemSelected(String selectedItem) {
+                            if (selectedItem.equals("Odstranit hlášení")) {
+                                String msg = "Opravdu odstranit tohoto hlášení?";
+                                if (reportToUpdate.getSentTime() == WAITING) msg = "Po odstranění nebude toto hlášení odesláno. Opravdu odstranit tohoto hlášení?";
+
+                                DialogYesNo.createDialog(MainActivity.this)
+                                        .setTitle("Odstranění hlášení")
+                                        .setMessage(msg)
+                                        .setListener(new YesNoSelectedListener() {
+                                            @Override
+                                            public void yesSelected() {
+                                                cancelTimer(reportToUpdate, false);
+
+                                                getDataSource().removeItem(reportToUpdate.getId(), new OnItemDeletedListener() {
+                                                    @Override
+                                                    public void onItemDeleted() {
+                                                        updateItems(null);
+                                                    }
+                                                });
+                                            }
+
+                                            @Override public void noSelected() {}
+                                        }).show();
+                            } else if (selectedItem.equals("Obnovit automatické hlášení")) {
+                                setTimer(reportToUpdate);
+                            } else if (selectedItem.equals("Zrušit hlášení")) {
+                                DialogYesNo.createDialog(MainActivity.this)
+                                        .setTitle("Zrušení hlášení")
+                                        .setMessage("Opravdu zrušit odeslání tohoto hlášení?")
+                                        .setListener(new YesNoSelectedListener() {
+                                            @Override
+                                            public void yesSelected() {
+                                                cancelTimer(reportToUpdate, true);
+                                            }
+
+                                            @Override public void noSelected() {}
+                                        }).show();
+                            } else if (selectedItem.equals("Upravit hlášení")) {
+                                actualReport = reportToUpdate;
+                                Bundle args = new Bundle();
+                                args.putBoolean("edit", true);
+                                showFragment(FRAGMENT_TIMER_NAME, args);
+                            } else if (selectedItem.equals("Použít hlášení")) {
+                                actualReport = reportToUpdate;
+                                Bundle args = new Bundle();
+                                args.putBoolean("use", true);
+                                showFragment(FRAGMENT_TIMER_NAME, args);
+                            }
+                        }
+                    }).show();
+
+            return true;
         }
     };
 

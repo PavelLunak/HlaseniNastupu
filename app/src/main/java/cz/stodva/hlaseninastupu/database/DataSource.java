@@ -9,6 +9,7 @@ import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
@@ -17,6 +18,7 @@ import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnMaxIdCheckedListener;
+import cz.stodva.hlaseninastupu.listeners.OnNextLastReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
@@ -311,7 +313,41 @@ public class DataSource implements AppConstants {
                     null,
                     null,
                     null,
-                    null);
+                    DbHelper.COLUMN_TIME + " ASC");
+
+            cursor.moveToFirst();
+
+            for(int i = 0, count = cursor.getCount(); i < count; i ++) {
+                report = cursorToReport(cursor);
+                toReturn.add(report);
+                if(cursor.isLast()) break;
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        } catch (Exception e) {
+            if (listener != null) listener.onItemsLoaded(toReturn);
+        }
+    }
+
+    // Získání všech hlášení, která NEčekají na odeslání nebo doručení a nejsou zrušená
+    public void getOldItems(OnItemsLoadedListener listener) {
+        Log.d(LOG_TAG, "DataSource - getWaitingItems()" + LOG_UNDERLINED);
+        open();
+        ArrayList<Report> toReturn = new ArrayList<>();
+        Report report;
+        Cursor cursor;
+
+        try {
+            cursor = database.query(
+                    DbHelper.TABLE_REPORTS,
+                    null,
+                    DbHelper.COLUMN_SENT + " != " + ("" + WAITING) + " AND " + DbHelper.COLUMN_DELIVERED + " != " + ("" + WAITING) + " AND " + DbHelper.COLUMN_SENT + " != " + ("" + CANCELED),
+                    null,
+                    null,
+                    null,
+                    DbHelper.COLUMN_TIME + " DESC");
 
             cursor.moveToFirst();
 
@@ -431,6 +467,35 @@ public class DataSource implements AppConstants {
         } catch (Exception e) {
             if (listener != null) listener.onItemsLoaded(toReturn);
         }
+    }
+
+    // Vyhledá nejbližší aktivní hlášení a poslední odeslané hlášení
+    public void getNextLastReport(final OnNextLastReportLoadedListener listener) {
+        final Report[] toReturn = new Report[]{null, null};
+
+        getWaitingItems(new OnItemsLoadedListener() {
+            @Override
+            public void onItemsLoaded(ArrayList<Report> loadedWaitingItems) {
+                if (loadedWaitingItems != null) {
+                    if (!loadedWaitingItems.isEmpty()) {
+                        toReturn[0] = loadedWaitingItems.get(0);
+                    }
+                }
+
+                getOldItems(new OnItemsLoadedListener() {
+                    @Override
+                    public void onItemsLoaded(ArrayList<Report> loadedOldItems) {
+                        if (loadedOldItems != null) {
+                            if (!loadedOldItems.isEmpty()) {
+                                toReturn[1] = loadedOldItems.get(0);
+                            }
+                        }
+
+                        if (listener != null) listener.onNextLastReportLoaded(toReturn);
+                    }
+                });
+            }
+        });
     }
 
     private Report cursorToReport(Cursor cursor) {

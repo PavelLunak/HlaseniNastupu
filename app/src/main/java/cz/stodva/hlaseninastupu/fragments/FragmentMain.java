@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,8 +28,8 @@ import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
+import cz.stodva.hlaseninastupu.listeners.OnNextLastReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
-import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.receivers.MessageDeliveredReceiver;
@@ -45,8 +46,12 @@ public class FragmentMain extends Fragment implements AppConstants {
 
     TextView btnStartShift, btnEndShift, btnSetTimeForReport;
     TextView labelLastMessageType, labelLastReportTime, labelLastMessage;
-    TextView titleLastReport, labelCount;
+    TextView labelNextMessageType, labelNextReportTime, labelNextMessage;
+    TextView /*titleLastReport, */labelCount;
     ImageView imgLastSent, imgLastDelivered, imgLastWarn;
+    ImageView imgNextSent, imgNextDelivered, imgNextWarn;
+
+    RelativeLayout layoutNextReport, layoutLastReport;
 
 
     @Override
@@ -70,16 +75,25 @@ public class FragmentMain extends Fragment implements AppConstants {
         btnEndShift = view.findViewById(R.id.btnEndShift);
         btnSetTimeForReport = view.findViewById(R.id.btnSetTimeForReport);
 
+        layoutNextReport = view.findViewById(R.id.layoutNextReport);
+        layoutLastReport = view.findViewById(R.id.layoutLastReport);
+
         labelLastMessageType = view.findViewById(R.id.labelLastMessageType);
         labelLastReportTime = view.findViewById(R.id.labelLastReportTime);
         labelLastMessage = view.findViewById(R.id.labelLastMessage);
+        labelNextMessageType = view.findViewById(R.id.labelNextMessageType);
+        labelNextReportTime = view.findViewById(R.id.labelNextReportTime);
+        labelNextMessage = view.findViewById(R.id.labelNextMessage);
 
-        titleLastReport = view.findViewById(R.id.titleLastReport);
+        //titleLastReport = view.findViewById(R.id.titleLastReport);
         labelCount = view.findViewById(R.id.labelCount);
 
         imgLastSent = view.findViewById(R.id.imgLastSent);
         imgLastDelivered = view.findViewById(R.id.imgLastDelivered);
         imgLastWarn = view.findViewById(R.id.imgLastWarn);
+        imgNextSent = view.findViewById(R.id.imgNextSent);
+        imgNextDelivered = view.findViewById(R.id.imgNextDelivered);
+        imgNextWarn = view.findViewById(R.id.imgNextWarn);
 
         return view;
     }
@@ -114,6 +128,9 @@ public class FragmentMain extends Fragment implements AppConstants {
                 activity.showFragment(FRAGMENT_TIMER_NAME, null);
             }
         });
+
+        layoutNextReport.setOnLongClickListener(activity.onLongClickListener);
+        layoutLastReport.setOnLongClickListener(activity.onLongClickListener);
     }
 
     private void requestSendReport(final int messageType) {
@@ -191,46 +208,67 @@ public class FragmentMain extends Fragment implements AppConstants {
     public void updateInfo() {
         Log.d(LOG_TAG, "(1001) FragmentMain - updateReportInfo()");
 
-        // Získání naposledy vloženého hlášení
-        // TODO naposledy vložené hlášení nemusí být nejbližší ani poslední odeslané hlášení!!!
-        activity.getDataSource().getReportByMaxId(new OnReportLoadedListener() {
+        activity.getDataSource().getNextLastReport(new OnNextLastReportLoadedListener() {
             @Override
-            public void onReportLoaded(Report report) {
-                if (report == null) {
-                    titleLastReport.setText("Poslední hlášení");
-                    labelLastMessageType.setText("-----");
-                    labelLastReportTime.setText("--.--.---- --:--");
-                    labelLastMessage.setVisibility(View.GONE);
+            public void onNextLastReportLoaded(Report[] result) {
 
-                    imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-                    imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
-
-                    return;
-                }
-
-                Log.d(LOG_TAG, "last report id: " + report.getId());
-
-                titleLastReport.setText(report.getSentTime() == WAITING ? "Následující hlášení" : "Poslední hlášení");
-                labelLastMessageType.setText(report.getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
-                labelLastReportTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));
-
-                if (report.getMessage() == null) {
-                    labelLastMessage.setVisibility(View.GONE);
+                // Následující hlášení
+                if (result[0] == null) {
+                    layoutNextReport.setVisibility(View.GONE);
                 } else {
-                    labelLastMessage.setVisibility(View.VISIBLE);
-                    labelLastMessage.setText(report.getMessage());
+                    layoutNextReport.setVisibility(View.VISIBLE);
+                    layoutNextReport.setTag(result[0]);
+
+                    labelNextMessageType.setText(result[0].getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
+                    labelNextReportTime.setText(AppUtils.timeToString(result[0].getTime(), REPORT_PHASE_NONE));
+
+                    if (result[0].getMessage() == null) {
+                        labelNextMessage.setVisibility(View.GONE);
+                    } else {
+                        labelNextMessage.setVisibility(View.VISIBLE);
+                        labelNextMessage.setText(result[0].getMessage());
+                    }
+
+                    boolean isSent = result[0].getSentTime() > NONE;
+                    boolean isDelivered = result[0].getDeliveryTime() > NONE;
+
+                    if (isSent) imgNextSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                    else imgNextSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                    if (isDelivered) imgNextDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                    else imgNextDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                    showWarn(result[0].isFailed(), REPORT_INFO_TYPE_NEXT);
                 }
 
-                boolean isSent = report.getSentTime() > NONE;
-                boolean isDelivered = report.getDeliveryTime() > NONE;
+                // Poslední hlášení
+                if (result[1] == null) {
+                    layoutLastReport.setVisibility(View.GONE);
+                } else {
+                    layoutLastReport.setVisibility(View.VISIBLE);
+                    layoutLastReport.setTag(result[1]);
 
-                if (isSent) imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-                else imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+                    labelLastMessageType.setText(result[1].getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
+                    labelLastReportTime.setText(AppUtils.timeToString(result[1].getTime(), REPORT_PHASE_NONE));
 
-                if (isDelivered) imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
-                else imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+                    if (result[1].getMessage() == null) {
+                        labelLastMessage.setVisibility(View.GONE);
+                    } else {
+                        labelLastMessage.setVisibility(View.VISIBLE);
+                        labelLastMessage.setText(result[1].getMessage());
+                    }
 
-                showWarn(report.isFailed());
+                    boolean isSent = result[1].getSentTime() > NONE;
+                    boolean isDelivered = result[1].getDeliveryTime() > NONE;
+
+                    if (isSent) imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                    else imgLastSent.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                    if (isDelivered) imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_green));
+                    else imgLastDelivered.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_gray));
+
+                    showWarn(result[1].isFailed(), REPORT_INFO_TYPE_LAST);
+                }
             }
         });
 
@@ -242,9 +280,14 @@ public class FragmentMain extends Fragment implements AppConstants {
         });
     }
 
-    public void showWarn(boolean show) {
+    public void showWarn(boolean show, int reportInfoType) {
         Log.d(LOG_TAG, "(1002) FragmentMain - showWarn()");
-        imgLastWarn.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        if (reportInfoType == REPORT_INFO_TYPE_NEXT) {
+            imgNextWarn.setVisibility(show ? View.VISIBLE : View.GONE);
+        } else {
+            imgLastWarn.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
     }
 
     public void initPhoneStateListener(final String phone, final String text, final Report report) {

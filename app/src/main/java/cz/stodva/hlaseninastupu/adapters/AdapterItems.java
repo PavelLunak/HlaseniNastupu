@@ -94,90 +94,12 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
     public void onBindViewHolder(final MyViewHolder holder, final int position) {
         final Report report = activity.getItems().get(position);
 
-        View.OnLongClickListener onLongClickListener = new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-
-                final Report reportToUpdate = activity.items.get(position);
-
-                AppUtils.vibrate(activity);
-
-                ArrayList<String> items = new ArrayList();
-                items.add("Odstranit hlášení");
-                items.add("Použít hlášení");
-
-                // Automatické hlášení lze obnovit (čas hlášení je v budoucnu)
-                if (reportToUpdate.getSentTime() == CANCELED && reportToUpdate.getTime() > new Date().getTime()) {
-                    items.add("Obnovit automatické hlášení");
-                }
-
-                // Automatické hlášení lze deaktivovat
-                if (reportToUpdate.getSentTime() == WAITING) {
-                    items.add("Zrušit hlášení");
-                    items.add("Upravit hlášení");
-                }
-
-                String[] itemsToArray = items.toArray(new String[items.size()]);
-
-                DialogSelect.createDialog(activity)
-                        .setTitle("Úprava hlášení...")
-                        .setItems(itemsToArray)
-                        .setListener(new DialogSelect.OnDialogSelectItemSelectedListener() {
-                            @Override
-                            public void onDialogSelectItemSelected(String selectedItem) {
-                                if (selectedItem.equals("Odstranit hlášení")) {
-                                    activity.cancelTimer(reportToUpdate, false);
-
-                                    activity.getDataSource().removeItem(reportToUpdate.getId(), new OnItemDeletedListener() {
-                                        @Override
-                                        public void onItemDeleted() {
-                                            activity.updateItems(null);
-                                        }
-                                    });
-                                } else if (selectedItem.equals("Obnovit automatické hlášení")) {
-                                    activity.setTimer(reportToUpdate);
-                                } else if (selectedItem.equals("Zrušit hlášení")) {
-                                    activity.cancelTimer(reportToUpdate, true);
-                                } else if (selectedItem.equals("Upravit hlášení")) {
-                                    activity.actualReport = reportToUpdate;
-                                    Bundle args = new Bundle();
-                                    args.putBoolean("edit", true);
-                                    activity.showFragment(FRAGMENT_TIMER_NAME, args);
-                                } else if (selectedItem.equals("Použít hlášení")) {
-                                    activity.actualReport = reportToUpdate;
-                                    Bundle args = new Bundle();
-                                    args.putBoolean("use", true);
-                                    activity.showFragment(FRAGMENT_TIMER_NAME, args);
-                                }
-                            }
-                        }).show();
-
-                return true;
-            }
-        };
-
-        holder.root.setOnLongClickListener(onLongClickListener);
-        holder.labelMessageType.setOnLongClickListener(onLongClickListener);
-        holder.labelReportTime.setOnLongClickListener(onLongClickListener);
-        holder.labelDeliveryTime.setOnLongClickListener(onLongClickListener);
-        holder.labelTimeOfSending.setOnLongClickListener(onLongClickListener);
-        holder.labelMessage.setOnLongClickListener(onLongClickListener);
-        holder.img.setOnLongClickListener(onLongClickListener);
-        holder.imgWaitSend.setOnLongClickListener(onLongClickListener);
-        holder.imgWaitDelivery.setOnLongClickListener(onLongClickListener);
-
+        holder.root.setOnLongClickListener(activity.onLongClickListener);
+        holder.root.setTag(new Integer(position));
 
         // Detaily hlášení (pro ladění aplikace)
         if (activity.getAppSettings().isShowItemDetails()) {
             holder.layoutDetails.setVisibility(View.VISIBLE);
-
-            holder.labelId.setOnLongClickListener(onLongClickListener);
-            holder.labelTime.setOnLongClickListener(onLongClickListener);
-            holder.labelMsgType.setOnLongClickListener(onLongClickListener);
-            holder.labelSent.setOnLongClickListener(onLongClickListener);
-            holder.labelDelivered.setOnLongClickListener(onLongClickListener);
-            holder.labelCodeAlarm.setOnLongClickListener(onLongClickListener);
-            holder.labelCodeError.setOnLongClickListener(onLongClickListener);
 
             holder.labelId.setText("" + report.getId());
             holder.labelTime.setText(AppUtils.timeToString(report.getTime(), REPORT_PHASE_NONE));

@@ -11,7 +11,7 @@ import java.util.Date;
 
 public class AppUtils implements AppConstants {
 
-    public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  k:mm");
+    public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM.yyyy  HH:mm");
 
     public static String timeToString(long time, int reportPhase) {
         if (time == NONE) return "NONE";

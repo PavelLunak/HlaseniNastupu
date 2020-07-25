@@ -16,7 +16,7 @@ public interface AppConstants {
     int PERMISSION_WRITE_EXTERNAL_STORAGE = 2;
     int PERMISSION_READ_CONTACTS = 3;
 
-    long TIME_FOR_CONTROL = 20000;
+    long TIME_FOR_CONTROL = 30000;
 
     String MESSAGE_STRAT = "NASTUP";
     String MESSAGE_END = "KONEC";
@@ -30,6 +30,9 @@ public interface AppConstants {
     String FRAGMENT_TIMER = "Automat";
     String FRAGMENT_SETTINGS = "Nastavení";
     String FRAGMENT_ITEMS = "Historie hlášení";
+
+    int REPORT_INFO_TYPE_NEXT = 1;
+    int REPORT_INFO_TYPE_LAST = 2;
 
     int MESSAGE_TYPE_START = 1;
     int MESSAGE_TYPE_END = 2;

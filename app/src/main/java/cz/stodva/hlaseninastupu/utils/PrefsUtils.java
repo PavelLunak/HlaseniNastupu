@@ -13,7 +13,7 @@ import cz.stodva.hlaseninastupu.objects.AppSettings;
 public class PrefsUtils implements AppConstants {
 
     //Pouze kvůli testování a výpisu do logu
-    public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM. yyyy  k:mm");
+    public static SimpleDateFormat sdf = new SimpleDateFormat("d.MM. yyyy  HH:mm");
 
     public static String timeToString(long time) {
         return sdf.format(time);
