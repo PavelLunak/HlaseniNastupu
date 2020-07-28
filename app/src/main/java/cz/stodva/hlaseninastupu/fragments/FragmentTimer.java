@@ -203,7 +203,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                                         activity.updateItems(new OnItemsLoadedListener() {
                                                             @Override
                                                             public void onItemsLoaded(ArrayList<Report> loadedItems) {
-                                                                activity.setTimer(activity.actualReport);
+                                                                activity.setTimerWithErrorCheck(activity.actualReport);
                                                                 activity.showFragment(AppConstants.FRAGMENT_ITEMS_NAME, null);
                                                                 Toast.makeText(activity, "Hlášení bylo upraveno...", Toast.LENGTH_LONG).show();
                                                             }
@@ -226,7 +226,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                             public void onReportAdded(Report addedReport) {
                                                 Log.d(LOG_TAG, "Nové hlášení bylo přidáno a získávám jeho ID, které je: " + addedReport.getId());
                                                 activity.actualReport.setId(addedReport.getId());
-                                                activity.setTimer(activity.actualReport);
+                                                activity.setTimerWithErrorCheck(activity.actualReport);
                                                 activity.showFragment(FRAGMENT_MAIN_NAME, null);
                                             }
                                         });

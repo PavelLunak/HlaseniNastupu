@@ -35,8 +35,10 @@ public class MessageDeliveredReceiver extends BroadcastReceiver {
                 public void onReportLoaded(Report loadedReport) {
                     if (loadedReport != null) {
                         if (loadedReport.isFailed()) {
+                            Log.d(AppConstants.LOG_TAG_SMS, AppConstants.LOG_TAB + "loadedReport.isFailed()");
+
                             // Aktualizace zprávy
-                            dataSource.updateReportMessage(reportId, "Hlášení bylo doručeno později...", new OnReportUpdatedListener() {
+                            dataSource.updateReportMessage(reportId, "Hlášení bylo doručeno s velkou prodlevou...", new OnReportUpdatedListener() {
                                 @Override
                                 public void onReportUpdated(Report updatedReport) {
                                     // Aktualizace dat hlášení po jeho doručení
@@ -52,7 +54,20 @@ public class MessageDeliveredReceiver extends BroadcastReceiver {
                                     context.sendBroadcast(intentResult);
                                 }
                             });
+                        } else {
+                            dataSource.updateReportValue(
+                                    reportId,
+                                    new String[] {DbHelper.COLUMN_DELIVERED, DbHelper.COLUMN_IS_FAILED, DbHelper.COLUMN_IS_DELIVERED},
+                                    new long[] {new Date().getTime(), 0, 1},
+                                    null);
+
+                            // Odeslání informace o úspěšném odeslání hlášení do MainActivity (pokud je aplikace spuštěna)
+                            Intent intentResult = new Intent(AppConstants.ACTION_REPORT_RESULT);
+                            intentResult.putExtra("report_id", reportId);
+                            context.sendBroadcast(intentResult);
                         }
+                    } else {
+                        Log.d(AppConstants.LOG_TAG_SMS, AppConstants.LOG_TAB + "loadedReport == null");
                     }
                 }
             });

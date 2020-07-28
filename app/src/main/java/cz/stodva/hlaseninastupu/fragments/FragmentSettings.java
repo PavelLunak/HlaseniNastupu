@@ -27,8 +27,9 @@ import cz.stodva.hlaseninastupu.utils.PrefsUtils;
 
 public class FragmentSettings extends Fragment implements AppConstants {
 
-    EditText etSap, etPhone, etMessageStart, etMessageEnd;
+    EditText etSap, etPhone;
     TextView labelInvalidPhone, labelWarning, labelVersion, labelContactName;
+    TextView labelMessageStart, labelMessageEnd;
     ImageView imgPerson;
     Button btnSave, btnCancel;
 
@@ -43,13 +44,26 @@ public class FragmentSettings extends Fragment implements AppConstants {
     boolean backPressed;
 
     TextWatcher textWatcher = new TextWatcher() {
-        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-        @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
 
         @Override
         public void afterTextChanged(Editable s) {
-            labelContactName.setText("");
-            labelContactName.setVisibility(View.GONE);
+            if (!checkInput(etPhone).equals(phone)) {
+                labelContactName.setText("");
+                labelContactName.setVisibility(View.GONE);
+            } else {
+                if (!contactName.equals("")) {
+                    labelContactName.setVisibility(View.VISIBLE);
+                    labelContactName.setText(contactName);
+                }
+            }
+
             checkData();
         }
     };
@@ -68,8 +82,8 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
         etSap = view.findViewById(R.id.etSap);
         etPhone = view.findViewById(R.id.etPhone);
-        etMessageStart = view.findViewById(R.id.etMessageStart);
-        etMessageEnd = view.findViewById(R.id.etMessageEnd);
+        labelMessageStart = view.findViewById(R.id.labelMessageStart);
+        labelMessageEnd = view.findViewById(R.id.labelMessageEnd);
 
         labelInvalidPhone = view.findViewById(R.id.labelInvalidPhone);
         labelWarning = view.findViewById(R.id.labelWarning);
@@ -98,27 +112,30 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
         etSap.setText(sap);
         etPhone.setText(phone);
-        etMessageStart.setText(startMsg);
-        etMessageEnd.setText(endMsg);
+        labelMessageStart.setText(startMsg);
+        labelMessageEnd.setText(endMsg);
 
         etSap.addTextChangedListener(textWatcher);
         etPhone.addTextChangedListener(textWatcher);
-        etMessageStart.addTextChangedListener(textWatcher);
-        etMessageEnd.addTextChangedListener(textWatcher);
 
         labelVersion.setText("Verze: " + activity.getAppVersion());
 
-        if (contactName.equals("")) {
+        if (contactName == null) {
             labelContactName.setVisibility(View.GONE);
         } else {
-            labelContactName.setVisibility(View.VISIBLE);
-            labelContactName.setText(contactName);
+            if (contactName.equals("")) {
+                labelContactName.setVisibility(View.GONE);
+            } else {
+                labelContactName.setVisibility(View.VISIBLE);
+                labelContactName.setText(contactName);
+            }
         }
 
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 saveData();
+                backPressed = true;
                 activity.onBackPressed();
             }
         });
@@ -147,15 +164,18 @@ public class FragmentSettings extends Fragment implements AppConstants {
     private void checkData() {
         etPhone.setHint(PHONE_NUMBER);
 
-        if (!sap.equals("")) {
-            etMessageStart.setHint(MESSAGE_STRAT + " " + sap);
-            etMessageEnd.setHint(MESSAGE_END + " " + sap);
+        if (!etSap.getText().toString().equals("")) {
+            startMsg = MESSAGE_STRAT + " " + etSap.getText().toString();
+            endMsg = MESSAGE_END + " " + etSap.getText().toString();
         } else {
-            if (etMessageStart.getHint().toString().contains("NASTUP")) etMessageStart.setHint("Musí být vyplněno");
-            if (etMessageEnd.getHint().toString().contains("KONEC")) etMessageEnd.setHint("Musí být vyplněno");
+            startMsg = "";
+            endMsg = "";
         }
 
-        if ((startMsg.equals("") || endMsg.equals("")) && sap.equals("")) labelWarning.setVisibility(View.VISIBLE);
+        labelMessageStart.setText(startMsg);
+        labelMessageEnd.setText(endMsg);
+
+        if (etSap.getText().toString().equals("")) labelWarning.setVisibility(View.VISIBLE);
         else labelWarning.setVisibility(View.GONE);
 
         if (validatePhoneNumber(etPhone.getText())) {
@@ -172,24 +192,10 @@ public class FragmentSettings extends Fragment implements AppConstants {
 
     public boolean hasUpdatesAfterRequestClose() {
 
-        Log.d("safawc", "hasUpdatesAfterRequestClose()");
-
-        Log.d("safawc", "etSap: " + etSap.getText().toString());
-        Log.d("safawc", "etPhone: " + etPhone.getText().toString());
-        Log.d("safawc", "etMessageStart: " + etMessageStart.getText().toString());
-        Log.d("safawc", "etMessageEnd: " + etMessageEnd.getText().toString());
-
-        Log.d("safawc", "sap: " + sap);
-        Log.d("safawc", "phone: " + phone);
-        Log.d("safawc", "startMsg: " + startMsg);
-        Log.d("safawc", "endMsg: " + endMsg);
-
         boolean result = false;
 
         if (!checkInput(etSap).equals(sap.trim())) result = true;
         if (!checkInput(etPhone).equals(phone.trim())) result = true;
-        if (!checkInput(etMessageStart).equals(startMsg.trim())) result = true;
-        if (!checkInput(etMessageEnd).equals(endMsg.trim())) result = true;
 
         if (result) {
             DialogYesNo.createDialog(activity)
@@ -202,7 +208,8 @@ public class FragmentSettings extends Fragment implements AppConstants {
                             activity.onBackPressed();
                         }
 
-                        @Override public void noSelected() {
+                        @Override
+                        public void noSelected() {
                             activity.onBackPressed();
                         }
                     }).show();
@@ -223,8 +230,6 @@ public class FragmentSettings extends Fragment implements AppConstants {
     public void saveData() {
         sap = checkInput(etSap);
         phone = checkInput(etPhone);
-        startMsg = checkInput(etMessageStart);
-        endMsg = checkInput(etMessageEnd);
 
         if (labelContactName.getText() != null) {
             if (labelContactName.getText().toString() != null) {

@@ -1,5 +1,6 @@
 package cz.stodva.hlaseninastupu.fragments;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -21,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.fragment.app.Fragment;
 
+import java.util.ArrayList;
 import java.util.Date;
 
 import cz.stodva.hlaseninastupu.MainActivity;
@@ -28,12 +30,14 @@ import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
+import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnNextLastReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.receivers.MessageDeliveredReceiver;
 import cz.stodva.hlaseninastupu.receivers.MessageSentReceiver;
+import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
 import cz.stodva.hlaseninastupu.utils.AppUtils;
@@ -47,7 +51,8 @@ public class FragmentMain extends Fragment implements AppConstants {
     TextView btnStartShift, btnEndShift, btnSetTimeForReport;
     TextView labelLastMessageType, labelLastReportTime, labelLastMessage;
     TextView labelNextMessageType, labelNextReportTime, labelNextMessage;
-    TextView /*titleLastReport, */labelCount;
+    TextView labelCount;
+    TextView labelAutomatNext, labelAutomatLast;
     ImageView imgLastSent, imgLastDelivered, imgLastWarn;
     ImageView imgNextSent, imgNextDelivered, imgNextWarn;
 
@@ -85,7 +90,9 @@ public class FragmentMain extends Fragment implements AppConstants {
         labelNextReportTime = view.findViewById(R.id.labelNextReportTime);
         labelNextMessage = view.findViewById(R.id.labelNextMessage);
 
-        //titleLastReport = view.findViewById(R.id.titleLastReport);
+        labelAutomatNext = view.findViewById(R.id.labelAutomatNext);
+        labelAutomatLast = view.findViewById(R.id.labelAutomatLast);
+
         labelCount = view.findViewById(R.id.labelCount);
 
         imgLastSent = view.findViewById(R.id.imgLastSent);
@@ -134,11 +141,12 @@ public class FragmentMain extends Fragment implements AppConstants {
     }
 
     private void requestSendReport(final int messageType) {
+        final String sap = activity.getSap();
         final String phone = activity.getPhoneNumber();
         final String text = activity.getMessage(messageType);
 
-        if (text == null) {
-            DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Není nastaven text hlášení! Nastav v nastavení aplikace.").show();
+        if (sap == null) {
+            DialogInfo.createDialog(activity).setTitle("Chyba").setMessage("Hlášení nelze odeslat - není nastaven SAP.").show();
             return;
         }
 
@@ -160,17 +168,18 @@ public class FragmentMain extends Fragment implements AppConstants {
                     public void yesSelected() {
                         activity.actualReport = new Report();
                         activity.actualReport.setMessageType(messageType);
-                        activity.actualReport.setTime(AppUtils.setSecondAndMillisToZero(new Date().getTime()));
+                        activity.actualReport.setTime(new Date().getTime());
                         activity.actualReport.setSentTime(WAITING);
                         activity.actualReport.setDeliveryTime(WAITING);
+                        activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
 
                         activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
                             @Override
-                            public void onReportAdded(Report addedReport) {
+                            public void onReportAdded(final Report addedReport) {
                                 activity.actualReport.setId(addedReport.getId());
 
                                 // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
-                                initPhoneStateListener(phone, text, addedReport);
+                                initPhoneStateListener(phone, text, activity.actualReport);
                             }
                         });
                     }
@@ -181,6 +190,10 @@ public class FragmentMain extends Fragment implements AppConstants {
 
     private void sendSms(final String phone, final String text, Report report) {
 
+        // Nastavení časovače pro upozornění chyb v odesílání nebo doručování hlášení
+        activity.setOnlyErrorCheckTimer(report);
+
+        // Sledování úspěšného odeslání hlášení
         Intent sentIntent = new Intent(activity, MessageSentReceiver.class);
         sentIntent.putExtra("report_id", report.getId());
 
@@ -192,6 +205,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                 sentIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
+        // Sledování úspěšného doručení hlášení
         Intent deliveredIntent = new Intent(activity, MessageDeliveredReceiver.class);
         deliveredIntent.putExtra("report_id", report.getId());
 
@@ -218,6 +232,9 @@ public class FragmentMain extends Fragment implements AppConstants {
                 } else {
                     layoutNextReport.setVisibility(View.VISIBLE);
                     layoutNextReport.setTag(result[0]);
+
+                    if (result[0].isAutomat()) labelAutomatNext.setVisibility(View.VISIBLE);
+                    else labelAutomatNext.setVisibility(View.GONE);
 
                     labelNextMessageType.setText(result[0].getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
                     labelNextReportTime.setText(AppUtils.timeToString(result[0].getTime(), REPORT_PHASE_NONE));
@@ -247,6 +264,9 @@ public class FragmentMain extends Fragment implements AppConstants {
                 } else {
                     layoutLastReport.setVisibility(View.VISIBLE);
                     layoutLastReport.setTag(result[1]);
+
+                    if (result[1].isAutomat()) labelAutomatLast.setVisibility(View.VISIBLE);
+                    else labelAutomatLast.setVisibility(View.GONE);
 
                     labelLastMessageType.setText(result[1].getMessageType() == MESSAGE_TYPE_START ? "NÁSTUP" : "KONEC");
                     labelLastReportTime.setText(AppUtils.timeToString(result[1].getTime(), REPORT_PHASE_NONE));

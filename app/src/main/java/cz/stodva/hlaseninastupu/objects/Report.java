@@ -17,6 +17,7 @@ public class Report implements Parcelable {
     private String message;
     private boolean isFailed;
     private boolean isDelivered;
+    private boolean isAutomat;
 
 
     public Report() {}
@@ -35,7 +36,25 @@ public class Report implements Parcelable {
                 ", message='" + message + '\'' +
                 ", isFailed=" + isFailed +
                 ", isDelivered=" + isDelivered +
+                ", isAutomat=" + isAutomat +
                 '}';
+    }
+
+    public void copyTo(Report targetReport) {
+        if (targetReport == null) return;
+
+        targetReport.setId(this.id);
+        targetReport.setMessageType(this.messageType);
+        targetReport.setTime(this.time);
+        targetReport.setSentTime(this.sentTime);
+        targetReport.setDeliveryTime(this.deliveryTime);
+        targetReport.setAlarmRequestCode(this.alarmRequestCode);
+        targetReport.setRequestCodeForErrorAlarm(this.requestCodeForErrorAlarm);
+        targetReport.setErrorAlert(this.isErrorAlert);
+        targetReport.setMessage(this.message);
+        targetReport.setFailed(this.isFailed);
+        targetReport.setDelivered(this.isDelivered);
+        targetReport.setAutomat(this.isAutomat);
     }
 
     public int getId() {
@@ -126,6 +145,14 @@ public class Report implements Parcelable {
         isDelivered = delivered;
     }
 
+    public boolean isAutomat() {
+        return isAutomat;
+    }
+
+    public void setAutomat(boolean automat) {
+        isAutomat = automat;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -144,6 +171,7 @@ public class Report implements Parcelable {
         dest.writeString(this.message);
         dest.writeByte(this.isFailed ? (byte) 1 : (byte) 0);
         dest.writeByte(this.isDelivered ? (byte) 1 : (byte) 0);
+        dest.writeByte(this.isAutomat ? (byte) 1 : (byte) 0);
     }
 
     protected Report(Parcel in) {
@@ -158,6 +186,7 @@ public class Report implements Parcelable {
         this.message = in.readString();
         this.isFailed = in.readByte() != 0;
         this.isDelivered = in.readByte() != 0;
+        this.isAutomat = in.readByte() != 0;
     }
 
     public static final Parcelable.Creator<Report> CREATOR = new Parcelable.Creator<Report>() {

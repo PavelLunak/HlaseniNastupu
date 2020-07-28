@@ -75,7 +75,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
             if (report.getSentTime() > NONE) {
                 if (!report.isDelivered()) {
                     Log.d(LOG_TAG_SMS, "(09) TimerReceiver - Hlášení nebylo doručeno");
-                    errMsg = "Hlášení nebylo doručeno!";
+                    errMsg = "Hlášení dosud nebylo doručeno...";
                     errorType = ERROR_TYPE_NO_DELIVERED;
                 }
             }
@@ -182,7 +182,7 @@ public class TimerReceiver extends BroadcastReceiver implements AppConstants {
 
     private void requestShowNoSentError(Context context, final Report report, String errMsg, int errorType) {
 
-        Log.d(LOG_TAG, "(23) TimerReceiver - sendError(errorType: " + AppUtils.errorTypeToString(errorType) + ")");
+        Log.d(LOG_TAG, "(23) TimerReceiver - requestShowNoSentError(errorType: " + AppUtils.errorTypeToString(errorType) + ")");
 
         if (dataSource == null) dataSource = new DataSource(context);
 

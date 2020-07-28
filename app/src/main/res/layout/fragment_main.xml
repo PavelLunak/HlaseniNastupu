@@ -80,6 +80,7 @@
                 android:id="@+id/layoutLastReport"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_margin="10dp"
                 android:layout_marginTop="40dp"
                 android:background="@drawable/bg_layout_last_report"
                 android:padding="10dp">
@@ -91,6 +92,18 @@
                     android:text="Poslední hlášení"
                     android:textColor="@android:color/white"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/labelAutomatLast"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@id/titleLastReport"
+                    android:layout_alignParentRight="true"
+                    android:background="@drawable/bg_label_automat"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:text="AUTOMAT"
+                    android:textColor="@android:color/white" />
 
                 <RelativeLayout
                     android:id="@+id/layoutLastTimer"
@@ -142,7 +155,8 @@
                         android:gravity="center_vertical"
                         android:padding="10dp"
                         android:text="Nástup: "
-                        android:textColor="#FFE500" />
+                        android:textColor="#FFE500"
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/labelLastReportTime"
@@ -171,6 +185,7 @@
                 android:id="@+id/layoutNextReport"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_margin="10dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_layout_next_report"
                 android:padding="10dp"
@@ -180,9 +195,21 @@
                     android:id="@+id/titleNextReport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Následující hlášení"
+                    android:text="Aktuální hlášení"
                     android:textColor="@android:color/white"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/labelAutomatNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@id/titleNextReport"
+                    android:layout_alignParentRight="true"
+                    android:background="@drawable/bg_label_automat"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:text="AUTOMAT"
+                    android:textColor="@android:color/white" />
 
                 <RelativeLayout
                     android:id="@+id/layoutNextTimer"
@@ -234,7 +261,8 @@
                         android:gravity="center_vertical"
                         android:padding="10dp"
                         android:text="Nástup: "
-                        android:textColor="#FFE500" />
+                        android:textColor="#FFE500"
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/labelNextReportTime"
@@ -269,6 +297,7 @@
                 android:id="@+id/layoutCountOfWaitingReports"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_margin="10dp"
                 android:padding="10dp">
 
                 <TextView
@@ -276,7 +305,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginRight="10dp"
-                    android:text="Počet čekajících hlášení: "
+                    android:text="Počet naplánovaných hlášení: "
                     android:textColor="@android:color/white"
                     android:textStyle="bold" />
 

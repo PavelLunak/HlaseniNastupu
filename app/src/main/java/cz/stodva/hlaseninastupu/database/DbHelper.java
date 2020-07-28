@@ -22,9 +22,10 @@ public class DbHelper extends SQLiteOpenHelper {
     public static final String COLUMN_MESSAGE = "message";
     public static final String COLUMN_IS_FAILED = "is_failed";
     public static final String COLUMN_IS_DELIVERED = "is_delivered";
+    public static final String COLUMN_IS_AUTOMAT = "is_automat";
 
     private static final String DATABASE_NAME = "reports.db";
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 8;
 
     private static final String TABLE_DEVICES_CREATE = "CREATE TABLE "
             + TABLE_REPORTS
@@ -38,7 +39,8 @@ public class DbHelper extends SQLiteOpenHelper {
             + COLUMN_IS_ERROR_ALERT + " VARCHAR (1), "
             + COLUMN_MESSAGE + " VARCHAR (200), "
             + COLUMN_IS_FAILED + " VARCHAR (1), "
-            + COLUMN_IS_DELIVERED + " VARCHAR (1) "
+            + COLUMN_IS_DELIVERED + " VARCHAR (1), "
+            + COLUMN_IS_AUTOMAT + " VARCHAR (1) "
             + ");";
 
     public Context context;

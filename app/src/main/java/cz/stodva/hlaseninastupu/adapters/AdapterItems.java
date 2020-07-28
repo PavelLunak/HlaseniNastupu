@@ -202,32 +202,44 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         // VZHLED IKONY POLOLŽKY -------------------------------------------------------------------
         // Hlášení bylo úspěšně odesláno i doručeno
         if (report.getSentTime() > NONE && report.getDeliveryTime() > NONE) {
+            holder.img.setVisibility(View.VISIBLE);
             holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_check_yellow));
         }
         // Hlášení čeká na odeslání nebo doručení
         else if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING) {
-            if (report.isErrorAlert()) holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alarm_on));
-            else holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alert_add));
+            if (report.isAutomat()) {
+                holder.img.setVisibility(View.VISIBLE);
+
+                if (report.isErrorAlert()) holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alarm_on));
+                else holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_alert_add));
+            } else {
+                holder.img.setVisibility(View.GONE);
+            }
+
         }
         // Hlášení se nepodařilo odeslat nebo doručit v nastaveném časovém limitu
         else if (report.getSentTime() == UNSUCCESFUL || report.getDeliveryTime() == UNSUCCESFUL) {
+            holder.img.setVisibility(View.VISIBLE);
             holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_warning));
             holder.root.setBackgroundResource(R.drawable.bg_item_failed);
         }
         // Hlášení bylo zrušeno uživatelem
         else if (report.getSentTime() == CANCELED) {
+            holder.img.setVisibility(View.VISIBLE);
             holder.img.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_canceled));
         }
 
-        holder.img.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING) {
-                    Animators.animateButtonClick(holder.img, true);
-                    activity.updateErrorAlert(report, !report.isErrorAlert());
+        if (!report.isAutomat()) {
+            holder.img.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (report.getSentTime() == WAITING || report.getDeliveryTime() == WAITING) {
+                        Animators.animateButtonClick(holder.img, true);
+                        activity.updateErrorAlert(report, !report.isErrorAlert());
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

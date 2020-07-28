@@ -24,7 +24,6 @@ import cz.stodva.hlaseninastupu.listeners.OnReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportUpdatedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
-import cz.stodva.hlaseninastupu.utils.AppUtils;
 
 
 public class DataSource implements AppConstants {
@@ -92,6 +91,7 @@ public class DataSource implements AppConstants {
         values.put(DbHelper.COLUMN_MESSAGE, report.getMessage());
         values.put(DbHelper.COLUMN_IS_FAILED, report.isFailed() ? "1" : "0");
         values.put(DbHelper.COLUMN_IS_DELIVERED, report.isDelivered() ? "1" : "0");
+        values.put(DbHelper.COLUMN_IS_AUTOMAT, report.isAutomat() ? "1" : "0");
 
         long insertId = database.insert(DbHelper.TABLE_REPORTS, null, values);
 
@@ -513,6 +513,7 @@ public class DataSource implements AppConstants {
         report.setMessage(cursor.getString(8));
         report.setFailed(cursor.getString(9).equals("1"));
         report.setDelivered(cursor.getString(10).equals("1"));
+        report.setAutomat(cursor.getString(11).equals("1"));
 
         if (report != null) Log.d(LOG_TAG, LOG_TAB + report.toString());
         else Log.d(LOG_TAG, LOG_TAB + "NULL");

@@ -59,7 +59,6 @@ import cz.stodva.hlaseninastupu.fragments.FragmentMain;
 import cz.stodva.hlaseninastupu.fragments.FragmentSettings;
 import cz.stodva.hlaseninastupu.fragments.FragmentTimer;
 import cz.stodva.hlaseninastupu.listeners.OnDatabaseClearedListener;
-import cz.stodva.hlaseninastupu.listeners.OnIdsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemDeletedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
@@ -130,10 +129,12 @@ public class MainActivity extends AppCompatActivity implements
 
     public View.OnLongClickListener onLongClickListener = new View.OnLongClickListener() {
         @Override
-        public boolean onLongClick(View v) {
+        public boolean onLongClick(final View v) {
 
+            // Pokud je tag typu Integer, byla vybrána položka ve FragmentItems
+            // Pokud je tag typu Report, byla vybrána položka ve FragmentMain
             final Report reportToUpdate = v.getTag() instanceof Report ? (Report) v.getTag() : items.get((int) v.getTag());
-            //final Report reportToUpdate = (Report) v.getTag();
+            final String fromFragment = v.getTag() instanceof Report ? FRAGMENT_MAIN_NAME : FRAGMENT_ITEMS_NAME;
 
             AppUtils.vibrate(MainActivity.this);
 
@@ -162,7 +163,8 @@ public class MainActivity extends AppCompatActivity implements
                         public void onDialogSelectItemSelected(String selectedItem) {
                             if (selectedItem.equals("Odstranit hlášení")) {
                                 String msg = "Opravdu odstranit tohoto hlášení?";
-                                if (reportToUpdate.getSentTime() == WAITING) msg = "Po odstranění nebude toto hlášení odesláno. Opravdu odstranit tohoto hlášení?";
+                                if (reportToUpdate.getSentTime() == WAITING)
+                                    msg = "Po odstranění nebude toto hlášení odesláno. Opravdu odstranit tohoto hlášení?";
 
                                 DialogYesNo.createDialog(MainActivity.this)
                                         .setTitle("Odstranění hlášení")
@@ -180,10 +182,12 @@ public class MainActivity extends AppCompatActivity implements
                                                 });
                                             }
 
-                                            @Override public void noSelected() {}
+                                            @Override
+                                            public void noSelected() {
+                                            }
                                         }).show();
                             } else if (selectedItem.equals("Obnovit automatické hlášení")) {
-                                setTimer(reportToUpdate);
+                                setTimerWithErrorCheck(reportToUpdate);
                             } else if (selectedItem.equals("Zrušit hlášení")) {
                                 DialogYesNo.createDialog(MainActivity.this)
                                         .setTitle("Zrušení hlášení")
@@ -194,13 +198,15 @@ public class MainActivity extends AppCompatActivity implements
                                                 cancelTimer(reportToUpdate, true);
                                             }
 
-                                            @Override public void noSelected() {}
+                                            @Override
+                                            public void noSelected() {
+                                            }
                                         }).show();
                             } else if (selectedItem.equals("Upravit hlášení")) {
                                 actualReport = reportToUpdate;
                                 Bundle args = new Bundle();
                                 args.putBoolean("edit", true);
-                                showFragment(FRAGMENT_TIMER_NAME, args);
+                                showFragment(v.getTag() instanceof Report ? FRAGMENT_MAIN_NAME : FRAGMENT_ITEMS_NAME, args);
                             } else if (selectedItem.equals("Použít hlášení")) {
                                 actualReport = reportToUpdate;
                                 Bundle args = new Bundle();
@@ -325,22 +331,22 @@ public class MainActivity extends AppCompatActivity implements
 
                                                 for (Report report : loadedItems) {
                                                     Log.d(LOG_TAG, "" + report.getId());
-                                                    //cancelTimer(report, false);
+                                                    cancelTimer(report, false);
                                                 }
 
-                                                /*
                                                 getDataSource().clearTable(new OnDatabaseClearedListener() {
                                                     @Override
                                                     public void onDatabaseCleared() {
                                                         updateItems(null);
                                                     }
                                                 });
-                                                */
                                             }
                                         });
                                     }
 
-                                    @Override public void noSelected() {}
+                                    @Override
+                                    public void noSelected() {
+                                    }
                                 })
                                 .show();
                     }
@@ -553,7 +559,8 @@ public class MainActivity extends AppCompatActivity implements
                         public void onItemsLoaded(ArrayList<Report> waitingItems) {
                             items = new ArrayList<>(waitingItems);
                             updateFragments();
-                            if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(items);
+                            if (onItemsLoadedListener != null)
+                                onItemsLoadedListener.onItemsLoaded(items);
                         }
                     });
                 } else {
@@ -562,7 +569,8 @@ public class MainActivity extends AppCompatActivity implements
                         public void onItemsLoaded(ArrayList<Report> loadedItems) {
                             items = new ArrayList<>(loadedItems);
                             updateFragments();
-                            if (onItemsLoadedListener != null) onItemsLoadedListener.onItemsLoaded(items);
+                            if (onItemsLoadedListener != null)
+                                onItemsLoadedListener.onItemsLoaded(items);
                         }
                     });
                 }
@@ -638,8 +646,10 @@ public class MainActivity extends AppCompatActivity implements
         return calendar.getTimeInMillis();
     }
 
-    // Nastavení časovače pro odeslání hlášení
-    public void setTimer(final Report report) {
+    // Nastavení časovače pro odeslání hlášení.
+    // Včetně časovače pro kontrolu odeslání a doručení
+    // Bude použito pouze u hlášení s automatem
+    public void setTimerWithErrorCheck(final Report report) {
 
         Log.d(LOG_TAG_SMS, "(112) MainActivity - setTimer()");
 
@@ -649,12 +659,14 @@ public class MainActivity extends AppCompatActivity implements
                         DbHelper.COLUMN_SENT,
                         DbHelper.COLUMN_DELIVERED,
                         DbHelper.COLUMN_REQUEST_CODE,
-                        DbHelper.COLUMN_ERROR_REQUEST_CODE},
+                        DbHelper.COLUMN_ERROR_REQUEST_CODE,
+                        DbHelper.COLUMN_IS_AUTOMAT},
                 new long[]{
                         WAITING,
                         WAITING,
                         getTimerRequestCode(),
-                        getTimerRequestCode()},
+                        getTimerRequestCode(),
+                        1},
                 new OnReportUpdatedListener() {
                     @Override
                     public void onReportUpdated(final Report updatedReport) {
@@ -702,6 +714,32 @@ public class MainActivity extends AppCompatActivity implements
                         });
                     }
                 });
+    }
+
+    // Nastavení časovače pro kontrolu odeslání a doručení
+    // Bude použito pouze u okamžitých hlášení bez automatu
+    public void setOnlyErrorCheckTimer(final Report report) {
+
+        Log.d(LOG_TAG_SMS, "(112_2) MainActivity - setOnlyErrorCheckTimer()");
+
+        // Časovač pro kontrolu doručení hlášení ---------------------------------------------------
+        Intent intentTimerCheckError = new Intent(MainActivity.this, TimerReceiver.class);
+        intentTimerCheckError.putExtra("report_id", report.getId());
+
+        //Příznak pro Receiver, že jde o budík pro kontrolu odeslání nebo doručení hlášení
+        intentTimerCheckError.putExtra("alarm_check_error", 1);
+
+        PendingIntent pendingIntentTimerCheckError = PendingIntent.getBroadcast(
+                MainActivity.this,
+                report.getRequestCodeForErrorAlarm(),
+                intentTimerCheckError,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager amCheckError = (AlarmManager) getSystemService(ALARM_SERVICE);
+        amCheckError.set(
+                AlarmManager.RTC_WAKEUP,
+                report.getTime() + TIME_FOR_CONTROL,
+                pendingIntentTimerCheckError);
     }
 
     // Zrušení časovače pro odeslání hlášení
@@ -811,8 +849,10 @@ public class MainActivity extends AppCompatActivity implements
                             public void onItemsLoaded(ArrayList<Report> loadedItems) {
                                 updateFragments();
 
-                                if (isErrorAlert) Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení ZAPNUTO...", Toast.LENGTH_LONG).show();
-                                else Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení VYPNUTO...", Toast.LENGTH_LONG).show();
+                                if (isErrorAlert)
+                                    Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení ZAPNUTO...", Toast.LENGTH_LONG).show();
+                                else
+                                    Toast.makeText(MainActivity.this, "Buzení při neúspěšném odeslání hlášení VYPNUTO...", Toast.LENGTH_LONG).show();
                             }
                         });
                     }
@@ -841,6 +881,24 @@ public class MainActivity extends AppCompatActivity implements
                         }
                     }).show();
         }
+    }
+
+    public Report getReportById(int id) {
+        if (items == null) return null;
+        if (items.isEmpty()) return null;
+
+        for (Report r : items) {
+            if (r.getId() == id) return r;
+        }
+
+        return null;
+    }
+
+    public String getSap() {
+        getAppSettings();
+
+        if (appSettings.getSap().equals("")) return null;
+        else return appSettings.getSap();
     }
 
     public String getPhoneNumber() {
@@ -1249,14 +1307,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public void downloadApp() {
 
-        String fileName = "hlaseni_app.apk";
+        String fileName = "hlaseni.apk";
         final String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + File.separator + fileName;
         final Uri uri = Uri.parse("file://" + destination);
 
         File file = new File(destination);
         if (file.exists()) file.delete();
 
-        String url = "http://stodva.cz/Hlaseni/app.apk";
+        String url = "http://stodva.cz/Hlaseni/hlaseni.apk";
 
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setDescription("description");
