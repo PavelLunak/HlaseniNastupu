@@ -259,4 +259,19 @@
         app:layout_constraintStart_toStartOf="@+id/imgWaitSend"
         app:srcCompat="@drawable/ic_hourglass_empty" />
 
+    <TextView
+        android:id="@+id/labelAutomat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_label_automat"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:text="AUTOMAT"
+        android:textColor="@android:color/white"
+        android:textSize="10sp"
+        app:layout_constraintBottom_toBottomOf="@+id/labelMessageType"
+        app:layout_constraintEnd_toStartOf="@+id/labelReportTime"
+        app:layout_constraintStart_toEndOf="@+id/labelMessageType"
+        app:layout_constraintTop_toTopOf="@+id/labelMessageType" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -29,6 +29,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
     static class MyViewHolder extends RecyclerView.ViewHolder {
 
         ConstraintLayout root;
+        TextView labelAutomat;
         TextView labelMessageType;
         TextView labelReportTime;
         TextView labelDeliveryTime;
@@ -67,6 +68,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         MyViewHolder vh = new MyViewHolder(v);
 
         vh.root = v.findViewById(R.id.root);
+        vh.labelAutomat = v.findViewById(R.id.labelAutomat);
         vh.labelMessageType = v.findViewById(R.id.labelMessageType);
         vh.labelReportTime = v.findViewById(R.id.labelReportTime);
         vh.labelDeliveryTime = v.findViewById(R.id.labelDeliveryTime);
@@ -96,6 +98,8 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
 
         holder.root.setOnLongClickListener(activity.onLongClickListener);
         holder.root.setTag(new Integer(position));
+
+        holder.labelAutomat.setVisibility(report.isAutomat() ? View.VISIBLE : View.GONE);
 
         // Detaily hlášení (pro ladění aplikace)
         if (activity.getAppSettings().isShowItemDetails()) {

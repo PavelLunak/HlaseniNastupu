@@ -43,6 +43,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.facebook.stetho.Stetho;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -70,6 +71,7 @@ import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.AppSettings;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.objects.TimerRequestCodeGenerator;
+import cz.stodva.hlaseninastupu.objects.VersionResponse;
 import cz.stodva.hlaseninastupu.receivers.TimerReceiver;
 import cz.stodva.hlaseninastupu.utils.Animators;
 import cz.stodva.hlaseninastupu.utils.AppConstants;
@@ -1255,6 +1257,45 @@ public class MainActivity extends AppCompatActivity implements
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
+
+                        Log.d("VTKVG", response);
+
+                        Gson gson = new Gson();
+                        VersionResponse versionResponse = gson.fromJson(response, VersionResponse.class);
+
+                        if (versionResponse == null) {
+                            Log.d("VTKVG", "versionResponse == null");
+                            return;
+                        }
+
+                        if (versionResponse.getVersion() == 0) {
+                            Log.d("VTKVG", "BAD REQUEST");
+                            return;
+                        }
+
+                        float currentVersion = Float.parseFloat(getAppVersion());
+
+                        Log.d("VTKVG", "VERSION: " + versionResponse.getVersion());
+                        Log.d("VTKVG", "MESSAGE:" + versionResponse.getMessage());
+
+                        if (versionResponse.getVersion() > currentVersion) {
+                            DialogYesNo.createDialog(MainActivity.this)
+                                    .setTitle("Aktualizace")
+                                    .setMessage("K dispozici je aktualiuace aplikace. Stáhnout a nainstalovat novou verzi?\n\n" + versionResponse.getMessage())
+                                    .setListener(new YesNoSelectedListener() {
+                                        @Override
+                                        public void yesSelected() {
+                                            downloadApp();
+                                        }
+
+                                        @Override
+                                        public void noSelected() {
+                                        }
+                                    })
+                                    .show();
+                        }
+
+                        /*
                         if (!response.equals(getAppVersion())) {
                             DialogYesNo.createDialog(MainActivity.this)
                                     .setTitle("Aktualizace")
@@ -1271,6 +1312,7 @@ public class MainActivity extends AppCompatActivity implements
                                     })
                                     .show();
                         }
+                        */
                     }
                 }, new Response.ErrorListener() {
             @Override
