@@ -140,6 +140,7 @@ public class FragmentMain extends Fragment implements AppConstants {
         layoutLastReport.setOnLongClickListener(activity.onLongClickListener);
     }
 
+    // Voláno při okamžitém odeslání hlášení (bez budíku)
     private void requestSendReport(final int messageType) {
         final String sap = activity.getSap();
         final String phone = activity.getPhoneNumber();
@@ -166,6 +167,10 @@ public class FragmentMain extends Fragment implements AppConstants {
                 .setListener(new YesNoSelectedListener() {
                     @Override
                     public void yesSelected() {
+                        // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
+                        initPhoneStateListener(phone, text, messageType);
+
+                        /*
                         activity.actualReport = new Report();
                         activity.actualReport.setMessageType(messageType);
                         activity.actualReport.setTime(new Date().getTime());
@@ -182,6 +187,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                                 initPhoneStateListener(phone, text, activity.actualReport);
                             }
                         });
+                        */
                     }
 
                     @Override public void noSelected() {}
@@ -310,7 +316,7 @@ public class FragmentMain extends Fragment implements AppConstants {
         }
     }
 
-    public void initPhoneStateListener(final String phone, final String text, final Report report) {
+    public void initPhoneStateListener(final String phone, final String text, final int messageType) {
         Log.d(LOG_TAG_SMS, "(1003) FragmentMain - initPhoneStateListener()");
         if (telephonyManager == null) {
             Log.d(LOG_TAG_SMS, "(1004) telephonyManager == null -> new init");
@@ -328,7 +334,22 @@ public class FragmentMain extends Fragment implements AppConstants {
                     switch (serviceState.getState()) {
                         case ServiceState.STATE_IN_SERVICE:
                             Log.d(LOG_TAG_SMS, "(1006) FragmentMain - onServiceStateChanged: STATE_IN_SERVICE");
-                            sendSms(phone, text, report);
+
+                            activity.actualReport = new Report();
+                            activity.actualReport.setMessageType(messageType);
+                            activity.actualReport.setTime(new Date().getTime());
+                            activity.actualReport.setSentTime(WAITING);
+                            activity.actualReport.setDeliveryTime(WAITING);
+                            activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
+
+                            activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
+                                @Override
+                                public void onReportAdded(final Report addedReport) {
+                                    activity.actualReport.setId(addedReport.getId());
+                                    sendSms(phone, text, addedReport);
+                                }
+                            });
+
                             break;
                         case ServiceState.STATE_OUT_OF_SERVICE:
                             Log.d(LOG_TAG_SMS, "(1007) FragmentMain - onServiceStateChanged: STATE_OUT_OF_SERVICE: ");
