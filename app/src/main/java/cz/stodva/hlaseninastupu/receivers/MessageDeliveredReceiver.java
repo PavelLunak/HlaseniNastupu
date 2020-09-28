@@ -28,7 +28,7 @@ public class MessageDeliveredReceiver extends BroadcastReceiver {
 
             // Získání právě doručeného hlášení, u kterého zkontrolujeme, jestli není nastaven na FAILED, což by
             // znamenalo, že hlášení bylo doručeno až po kontrole doručení a má nastavenu zprávu pro uživatele
-            // o jeho nedoručení. Pokud bylo později hlášení přesto doručeno, změníme tuto zprávu, aby balo jasné,
+            // o jeho nedoručení. Pokud bylo později hlášení přesto doručeno, změníme tuto zprávu, aby bylo jasné,
             // že bylo hlášení pouze doručeno později.
             dataSource.getReportById(reportId, new OnReportLoadedListener() {
                 @Override

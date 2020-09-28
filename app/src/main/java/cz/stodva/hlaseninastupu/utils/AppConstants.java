@@ -16,7 +16,7 @@ public interface AppConstants {
     int PERMISSION_WRITE_EXTERNAL_STORAGE = 2;
     int PERMISSION_READ_CONTACTS = 3;
 
-    long TIME_FOR_CONTROL = 30000;
+    long TIME_FOR_CONTROL = 300000;
 
     String MESSAGE_STRAT = "NASTUP";
     String MESSAGE_END = "KONEC";
