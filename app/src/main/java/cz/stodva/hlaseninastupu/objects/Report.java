@@ -18,6 +18,7 @@ public class Report implements Parcelable {
     private boolean isFailed;
     private boolean isDelivered;
     private boolean isAutomat;
+    private String desc;
 
 
     public Report() {}
@@ -37,6 +38,7 @@ public class Report implements Parcelable {
                 ", isFailed=" + isFailed +
                 ", isDelivered=" + isDelivered +
                 ", isAutomat=" + isAutomat +
+                ", desc='" + desc + '\'' +
                 '}';
     }
 
@@ -55,6 +57,7 @@ public class Report implements Parcelable {
         targetReport.setFailed(this.isFailed);
         targetReport.setDelivered(this.isDelivered);
         targetReport.setAutomat(this.isAutomat);
+        targetReport.setDesc(this.desc);
     }
 
     public int getId() {
@@ -153,6 +156,14 @@ public class Report implements Parcelable {
         isAutomat = automat;
     }
 
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -172,6 +183,7 @@ public class Report implements Parcelable {
         dest.writeByte(this.isFailed ? (byte) 1 : (byte) 0);
         dest.writeByte(this.isDelivered ? (byte) 1 : (byte) 0);
         dest.writeByte(this.isAutomat ? (byte) 1 : (byte) 0);
+        dest.writeString(this.desc);
     }
 
     protected Report(Parcel in) {
@@ -187,6 +199,7 @@ public class Report implements Parcelable {
         this.isFailed = in.readByte() != 0;
         this.isDelivered = in.readByte() != 0;
         this.isAutomat = in.readByte() != 0;
+        this.desc = in.readString();
     }
 
     public static final Parcelable.Creator<Report> CREATOR = new Parcelable.Creator<Report>() {

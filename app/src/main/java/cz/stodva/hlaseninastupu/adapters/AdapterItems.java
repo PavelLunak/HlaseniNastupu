@@ -32,6 +32,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         ImageView img;
         ImageView imgWaitSend;
         ImageView imgWaitDelivery;
+        TextView labelDesc;
 
         // Detaily hlášení (pro ladění aplikace)
         ConstraintLayout layoutDetails;
@@ -71,6 +72,7 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         vh.img = v.findViewById(R.id.img);
         vh.imgWaitSend = v.findViewById(R.id.imgWaitSend);
         vh.imgWaitDelivery = v.findViewById(R.id.imgWaitDelivery);
+        vh.labelDesc = v.findViewById(R.id.labelDesc);
 
 
         // Detaily hlášení (pro ladění aplikace)
@@ -94,6 +96,17 @@ public class AdapterItems extends RecyclerView.Adapter<AdapterItems.MyViewHolder
         holder.root.setTag(new Integer(position));
 
         holder.labelAutomat.setVisibility(report.isAutomat() ? View.VISIBLE : View.GONE);
+
+        if (report.getDesc() != null) {
+            if (!report.getDesc().equals("")) {
+                holder.labelDesc.setVisibility(View.VISIBLE);
+                holder.labelDesc.setText(report.getDesc());
+            } else {
+                holder.labelDesc.setVisibility(View.GONE);
+            }
+        } else {
+            holder.labelDesc.setVisibility(View.GONE);
+        }
 
         // Detaily hlášení (pro ladění aplikace)
         if (activity.getAppSettings().isShowItemDetails()) {

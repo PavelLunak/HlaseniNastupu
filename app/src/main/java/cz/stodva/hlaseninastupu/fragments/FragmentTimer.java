@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -46,6 +47,8 @@ public class FragmentTimer extends Fragment implements AppConstants {
     TextView btnOk;
     CheckBox chbErrorAlarm;
 
+    EditText etDesc;
+
     MainActivity activity;
     boolean isEdit;
     boolean isUsed;
@@ -75,6 +78,7 @@ public class FragmentTimer extends Fragment implements AppConstants {
         labelTime = view.findViewById(R.id.labelTime);
         btnOk = view.findViewById(R.id.btnOk);
         chbErrorAlarm = view.findViewById(R.id.chbErrorAlarm);
+        etDesc = view.findViewById(R.id.etDesc);
 
         return view;
     }
@@ -88,6 +92,12 @@ public class FragmentTimer extends Fragment implements AppConstants {
         // Editace existujícího hlášení
         if (isEdit) {
             btnOk.setText("ULOŽIT ÚPRAVY");
+
+            if (activity.actualReport.getDesc() != null) {
+                if (!activity.actualReport.getDesc().equals("")) {
+                    etDesc.setText(activity.actualReport.getDesc());
+                }
+            }
 
             calendar.setTime(new Date(activity.actualReport.getTime()));
             activity.setDateData(calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR));
@@ -183,6 +193,14 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                         activity.actualReport.setDeliveryTime(WAITING);
                                         activity.actualReport.setErrorAlert(chbErrorAlarm.isChecked());
 
+                                        if (etDesc.getText() != null) {
+                                            if (etDesc.getText().toString() != null) {
+                                                if (!etDesc.getText().toString().equals("")) {
+                                                    activity.actualReport.setDesc(etDesc.getText().toString());
+                                                }
+                                            }
+                                        }
+
                                         activity.getDataSource().updateReportValue(
                                                 activity.actualReport.getId(),
                                                 new String[]{
@@ -220,6 +238,14 @@ public class FragmentTimer extends Fragment implements AppConstants {
                                         activity.actualReport.setSentTime(WAITING);
                                         activity.actualReport.setDeliveryTime(WAITING);
                                         activity.actualReport.setErrorAlert(chbErrorAlarm.isChecked());
+
+                                        if (etDesc.getText() != null) {
+                                            if (etDesc.getText().toString() != null) {
+                                                if (!etDesc.getText().toString().equals("")) {
+                                                    activity.actualReport.setDesc(etDesc.getText().toString());
+                                                }
+                                            }
+                                        }
 
                                         activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
                                             @Override

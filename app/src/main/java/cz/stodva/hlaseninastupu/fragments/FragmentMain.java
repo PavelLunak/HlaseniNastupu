@@ -29,10 +29,12 @@ import cz.stodva.hlaseninastupu.MainActivity;
 import cz.stodva.hlaseninastupu.R;
 import cz.stodva.hlaseninastupu.customviews.DialogInfo;
 import cz.stodva.hlaseninastupu.customviews.DialogYesNo;
+import cz.stodva.hlaseninastupu.customviews.DialogYesNoInput;
 import cz.stodva.hlaseninastupu.listeners.OnItemsCountCheckedListener;
 import cz.stodva.hlaseninastupu.listeners.OnItemsLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnNextLastReportLoadedListener;
 import cz.stodva.hlaseninastupu.listeners.OnReportAddedListener;
+import cz.stodva.hlaseninastupu.listeners.YesNoInputSelectedListener;
 import cz.stodva.hlaseninastupu.listeners.YesNoSelectedListener;
 import cz.stodva.hlaseninastupu.objects.Report;
 import cz.stodva.hlaseninastupu.receivers.MessageDeliveredReceiver;
@@ -157,40 +159,21 @@ public class FragmentMain extends Fragment implements AppConstants {
         String cName = "";
         if (!missingContactName) cName = " (" + activity.getAppSettings().getContactName() + ")";
 
-        DialogYesNo.createDialog(activity)
+        DialogYesNoInput.createDialog(activity)
                 .setTitle(messageType == MESSAGE_TYPE_START ? "Nástup" : "Konec")
                 .setMessage("Odeslat na tel. číslo " +
                         activity.getPhoneNumber() +
                         cName +
                         " hlášení " +
                         (messageType == MESSAGE_TYPE_START ? " nástupu na směnu?" : "konce směny?"))
-                .setListener(new YesNoSelectedListener() {
+                .setListener(new YesNoInputSelectedListener() {
                     @Override
-                    public void yesSelected() {
+                    public void yesSelected(String desc) {
                         // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
-                        initPhoneStateListener(phone, text, messageType);
-
-                        /*
-                        activity.actualReport = new Report();
-                        activity.actualReport.setMessageType(messageType);
-                        activity.actualReport.setTime(new Date().getTime());
-                        activity.actualReport.setSentTime(WAITING);
-                        activity.actualReport.setDeliveryTime(WAITING);
-                        activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
-
-                        activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
-                            @Override
-                            public void onReportAdded(final Report addedReport) {
-                                activity.actualReport.setId(addedReport.getId());
-
-                                // Zapne sledování stavu zařízení a pokud je schopné odesílat SMS, bude odesláno hlášení
-                                initPhoneStateListener(phone, text, activity.actualReport);
-                            }
-                        });
-                        */
+                        initPhoneStateListener(phone, text, messageType, desc);
                     }
 
-                    @Override public void noSelected() {}
+                    @Override public void noSelected(String desc) {}
                 }).show();
     }
 
@@ -316,7 +299,7 @@ public class FragmentMain extends Fragment implements AppConstants {
         }
     }
 
-    public void initPhoneStateListener(final String phone, final String text, final int messageType) {
+    public void initPhoneStateListener(final String phone, final String text, final int messageType, final String desc) {
         Log.d(LOG_TAG_SMS, "(1003) FragmentMain - initPhoneStateListener()");
         if (telephonyManager == null) {
             Log.d(LOG_TAG_SMS, "(1004) telephonyManager == null -> new init");
@@ -341,6 +324,7 @@ public class FragmentMain extends Fragment implements AppConstants {
                             activity.actualReport.setSentTime(WAITING);
                             activity.actualReport.setDeliveryTime(WAITING);
                             activity.actualReport.setRequestCodeForErrorAlarm(activity.getTimerRequestCode());
+                            activity.actualReport.setDesc(desc);
 
                             activity.addReportToDatabase(activity.actualReport, new OnReportAddedListener() {
                                 @Override

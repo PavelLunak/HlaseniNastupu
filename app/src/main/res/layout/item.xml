@@ -35,12 +35,11 @@
         android:id="@+id/textView10"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
         android:padding="3dp"
         android:text="Odesláno:"
         android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/labelMessageType" />
+        app:layout_constraintTop_toBottomOf="@+id/labelDesc" />
 
     <TextView
         android:id="@+id/textView11"
@@ -273,5 +272,18 @@
         app:layout_constraintEnd_toStartOf="@+id/labelReportTime"
         app:layout_constraintStart_toEndOf="@+id/labelMessageType"
         app:layout_constraintTop_toTopOf="@+id/labelMessageType" />
+
+    <TextView
+        android:id="@+id/labelDesc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_label_automat"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        android:paddingBottom="2dp"
+        android:text="TextView"
+        android:textColor="@android:color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/labelMessageType" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

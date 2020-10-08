@@ -5,6 +5,6 @@ package cz.stodva.hlaseninastupu.listeners;
  */
 
 public interface YesNoSelectedListener {
-    public void yesSelected();
-    public void noSelected();
+    void yesSelected();
+    void noSelected();
 }

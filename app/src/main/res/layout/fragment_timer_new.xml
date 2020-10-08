@@ -91,6 +91,19 @@
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
+            <EditText
+                android:id="@+id/etDesc"
+                style="@android:style/Widget.Holo.EditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:ems="10"
+                android:hint="Popis hlášení..."
+                android:inputType="textPersonName"
+                android:textAlignment="center"
+                android:textColor="@color/white"
+                android:textColorHint="@android:color/darker_gray" />
+
             <CheckBox
                 android:id="@+id/chbErrorAlarm"
                 android:layout_width="wrap_content"
